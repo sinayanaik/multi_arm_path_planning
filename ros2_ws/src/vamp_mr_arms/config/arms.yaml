@@ -1,0 +1,32 @@
+env_json: two_arms.json
+
+arms:
+  - name: ur5
+    urdf: ur5.urdf
+    base: {xyz: [0.45, 0.0, 0.0], rpy: [0.0, 0.0, 3.141592653589793]}
+    ee_frame: tool0
+    joints: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint,
+             wrist_1_joint, wrist_2_joint, wrist_3_joint]
+  - name: ur7e
+    urdf: ur7e.urdf
+    base: {xyz: [-0.45, 0.0, 0.0], rpy: [0.0, 0.0, 0.0]}
+    ee_frame: tool0
+    joints: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint,
+             wrist_1_joint, wrist_2_joint, wrist_3_joint]
+
+# The VAMP arm models carry a 0.9144 m pedestal, so a 0.83 m table top sits just
+# under their base spheres. Raising it collides at every pose; lowering it floats.
+obstacles:
+  - {name: table_top, size: [1.50, 0.80, 0.05], xyz: [0.0, 0.0, 0.805]}
+  - {name: table_leg_front_left, size: [0.07, 0.07, 0.78], xyz: [0.65, 0.32, 0.39]}
+  - {name: table_leg_front_right, size: [0.07, 0.07, 0.78], xyz: [0.65, -0.32, 0.39]}
+  - {name: table_leg_back_left, size: [0.07, 0.07, 0.78], xyz: [-0.65, 0.32, 0.39]}
+  - {name: table_leg_back_right, size: [0.07, 0.07, 0.78], xyz: [-0.65, -0.32, 0.39]}
+
+planning:
+  planner: composite_rrt
+  planning_time: 10.0
+  shortcut_time: 0.1
+  vmax: 2.5
+  dt: 0.1
+  seed: 1

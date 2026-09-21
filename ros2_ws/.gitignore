@@ -1,0 +1,6 @@
+build/
+install/
+log/
+src/vamp_mr_arms/vamp_env/
+waypoints.csv
+src/ur_description/
