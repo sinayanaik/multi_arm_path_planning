@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="VAMP-MR: Vector-Accelerated Motion Planning and Execution for Multi-Robot-Arms">
+    <meta name="keywords" content="Motion Planning, Multi-Robot Arms, Collision Checking, SIMD">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VAMP-MR</title>
+
+    <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+    <link rel="stylesheet" href="./static/css/bulma.min.css">
+    <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+    <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+    <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+    <link rel="stylesheet" href="./static/css/index.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script defer src="./static/js/fontawesome.all.min.js"></script>
+    <script src="./static/js/bulma-carousel.min.js"></script>
+    <script src="./static/js/bulma-slider.min.js"></script>
+    <script src="./static/js/index.js"></script>
+
+    <link rel="icon" href="./resources/shortcut.png">
+
+    <meta property="og:site_name" content="VAMP-MR" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="VAMP-MR" />
+    <meta property="og:description" content="Vector-Accelerated Motion Planning and Execution for Multi-Robot-Arms" />
+    <meta property="og:url" content="https://vamp-mr.github.io/vamp-mr/" />
+    <meta property="og:image" content="https://vamp-mr.github.io/vamp-mr/resources/vamp_approximation.png" />
+  </head>
+
+  <body>
+    <section class="hero">
+      <div class="hero-body">
+        <div class="container">
+          <div class="columns is-centered">
+            <div class="column has-text-centered">
+              <h1 class="title is-1 publication-title">VAMP-MR: Vector-Accelerated Motion Planning and Execution for Multi-Robot-Arms</h1>
+              <div class="is-size-5 publication-authors">
+                <span class="author-block">
+                  <a href="https://philip-huang.com" target="_blank" rel="noreferrer">Philip Huang</a><sup>1</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                  Chenrui Gao<sup>2</sup>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                  <a href="https://jiaoyangli.me" target="_blank" rel="noreferrer">Jiaoyang Li</a><sup>1</sup>
+                  <br />
+                  <sup>1</sup>Carnegie Mellon University&nbsp;&nbsp;&nbsp;&nbsp;
+                  <sup>2</sup>University of Michigan
+                </span>
+              </div>
+
+              <div class="column has-text-centered">
+                <div class="publication-links">
+                
+                  <span class="link-block">
+                    <a href="https://arxiv.org/pdf/2607.13478"
+                      class="external-link button is-normal is-rounded is-dark">
+                      <span class="icon">
+                        <i class="fas fa-file-alt"></i>
+                      </span>
+                      <span>Paper</span>
+                    </a>
+                  </span>
+
+                  <span class="link-block">
+                    <a href="https://github.com/vamp-mr/vamp-mr"
+                      class="external-link button is-normal is-rounded is-dark">
+                      <span class="icon">
+                        <i class="fab fa-github"></i>
+                      </span>
+                      <span>Code</span>
+                    </a>
+                  </span>
+
+                  <span class="link-block">
+                    <a href="https://x.com/philipYHuang/status/2015609761824399550?s=20"
+                      class="external-link button is-normal is-rounded is-dark" target="_blank" rel="noopener noreferrer">
+                      <span class="icon">
+                        <svg
+                          width="1em"
+                          height="1em"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path d="M18.244 2H21.552L14.318 10.26L22.82 22H16.172L10.965 14.82L4.576 22H1.266L9.012 13.13L0.82 2H7.635L12.34 8.525L18.244 2ZM17.084 20H18.917L6.646 3.92H4.68L17.084 20Z"></path>
+                        </svg>
+                      </span>
+                      <span>X Post</span>
+                    </a>
+                  </span>
+                </div>
+              </div>
+
+              <div class="column has-text-centered">
+                <div class="vamp-contrib">
+                  <p class="vamp-contrib-line vamp-contrib-line--primary">
+                    We introduce a fast, general-purpose collision checker for multi-robot arms
+                  </p>
+                  <p class="vamp-contrib-line vamp-contrib-line--secondary">
+                    which speeds up planning, shortcutting, and building execution graph by <strong>10x-100x</strong>
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="vamp-layout">
+      <aside class="vamp-sidenav">
+        <nav class="menu">
+          <p class="menu-label">Sections</p>
+          <ul class="menu-list">
+            <li><a href="#abstract">Abstract</a></li>
+            <li><a href="#collision-checking">Collision Checking</a></li>
+            <li><a href="#planning">Planning</a></li>
+            <li><a href="#shortcutting">Shortcutting</a></li>
+            <li><a href="#lego-assembly">LEGO Assembly</a></li>
+            <li><a href="#code">Code</a></li>
+            <li><a href="#citation">Citation</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <main class="vamp-main">
+    <section class="hero teaser">
+      <div class="container is-max-desktop">
+        <div class="hero-body">
+          <figure class="image">
+            <video
+              controls
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              style="width: 100%; border-radius: 6px"
+            >
+              <source src="./resources/iros-26-video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </figure>
+          <p class="has-text-centered is-size-6" style="margin-top: 0.75rem">
+            VAMP-MR overview video.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3" id="abstract">Abstract</h2>
+            <div class="content has-text-justified">
+              <p>
+                Multi-robot-arm motion planning is a key challenge in deploying multiple manipulators for industrial tasks such as manufacturing.
+                Existing search-based and sampling-based solvers often require significant computation time to produce collision-free, high-quality motions suitable for safe execution.
+                In this work, we introduce a new suite of multi-robot-arm motion planners capable of near real-time motion generation, combining classical planning algorithms with state-of-the-art vectorized collision-checking techniques.
+                Based on CPU SIMD instructions, our new planners remove motion validation as the primary bottleneck and achieve up to two orders of magnitude speedup in both motion planning and execution postprocessing for multi-arm manipulation tasks.
+                We also release the implementation of our vector-accelerated multi-robot planning and execution algorithms, and we believe this will lower the barrier for research and development of multi-robot arm planning and manipulation problems.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3" id="collision-checking">Vectorized Multi-Robot Collision Checking</h2>
+            <figure class="image" style="margin-top: 0.75rem">
+              <img src="./resources/vamp_approximation.png" alt="Vectorized multi-robot collision checking speedup and illustration." />
+            </figure>
+            <p class="has-text-centered is-size-6" style="margin-top: 0.75rem">
+              Figure 1: vectorized multi-robot collision checking achieves up to 148x motion-validation speedup.
+            </p>
+            <div class="content has-text-justified">
+              <p>
+                VAMP-MR makes motion validation fast: CPU-SIMD vectorized forward kinematics and collision checking enable high-throughput evaluation over batches of multi-robot configurations.
+              </p>
+            </div>
+            <p class="content has-text-justified">
+              Table 1 : Average collision checking time over 10,000 random samples. “Single” checks a single set of multi-robot configurations; “Motion” validates a motion segment between two configurations.
+            </p>
+            <div class="table-container">
+              <table class="table is-fullwidth is-striped is-hoverable is-size-7 result-table">
+                <thead>
+                  <tr>
+                    <th>Check</th>
+                    <th>Environment</th>
+                    <th class="has-text-right">FCL (μs)</th>
+                    <th class="has-text-right">Ours (μs)</th>
+                    <th class="has-text-right">Speedup</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td rowspan="3"><strong>Single</strong></td>
+                    <td>Panda Two Rod</td>
+                    <td class="has-text-right">100.99</td>
+                    <td class="has-text-right">8.60</td>
+                    <td class="has-text-right"><strong>11.7×</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Panda Four</td>
+                    <td class="has-text-right">206.53</td>
+                    <td class="has-text-right">15.01</td>
+                    <td class="has-text-right"><strong>13.7×</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Panda Four Bins</td>
+                    <td class="has-text-right">382.63</td>
+                    <td class="has-text-right">13.70</td>
+                    <td class="has-text-right"><strong>27.9×</strong></td>
+                  </tr>
+                  <tr>
+                    <td rowspan="3"><strong>Motion</strong></td>
+                    <td>Panda Two Rod</td>
+                    <td class="has-text-right">3936.13</td>
+                    <td class="has-text-right">36.03</td>
+                    <td class="has-text-right"><strong>109.2×</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Panda Four</td>
+                    <td class="has-text-right">4836.50</td>
+                    <td class="has-text-right">32.61</td>
+                    <td class="has-text-right"><strong>148.3×</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Panda Four Bins</td>
+                    <td class="has-text-right">930.03</td>
+                    <td class="has-text-right">14.23</td>
+                    <td class="has-text-right"><strong>65.4×</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <figure class="image" style="margin-top: 1rem">
+              <img src="./resources/envs.png" alt="Evaluated multi-robot motion planning environments (Panda Two-Rod, Panda Four, Panda Four-Bins)." />
+            </figure>
+            <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">
+              Evaluated environments: Panda Two Rod, Panda Four, Panda Four Bins.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3" id="planning">Planning</h2>
+            <div class="content has-text-justified">
+              <p>
+                Vectorized motion validation accelerates both composite RRT-Connect and CBS-style multi-robot planning across the benchmark environments <strong>by one to two orders of magnitude</strong>.
+              </p>
+            </div>
+            <figure class="image">
+              <img src="./resources/planning_time_boxplots2.png" alt="Planning time comparison plot." />
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3" id="shortcutting">Shortcutting</h2>
+            <div class="content has-text-justified">
+              <p>
+                Postprocessing is collision-checking heavy. Multi-robot-arm shortcutting with vectorized validation converges to high-quality solutions up to <strong>50x</strong> faster than standard collision checking.
+              </p>
+            </div>
+            <figure class="image">
+              <img src="./resources/vamp_runtime_comparison2.png" alt="Shortcutting makespan improvement over time." />
+            </figure>
+            <div class="content has-text-justified" style="margin-top: 1.5rem">
+              <p>
+                Example RRT planning + shortcutting rollout:
+              </p>
+            </div>
+	          </div>
+	        </div>
+	      </div>
+
+	      <div class="container is-max-fullhd" style="margin-top: 0.5rem">
+	        <div class="columns is-variable is-4">
+	          <div class="column">
+	            <figure class="image" style="margin-top: 0.75rem">
+	              <video
+                controls
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                style="width: 100%; border-radius: 6px"
+              >
+                <source src="./resources/panda_two_rod_4x.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </figure>
+            <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">Panda Two Rod</p>
+          </div>
+          <div class="column">
+            <figure class="image" style="margin-top: 0.75rem">
+              <video
+                controls
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                style="width: 100%; border-radius: 6px"
+              >
+                <source src="./resources/panda_four_bins_4x.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </figure>
+            <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">Panda Four Bins</p>
+          </div>
+          <div class="column">
+            <figure class="image" style="margin-top: 0.75rem">
+              <video
+                controls
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                style="width: 100%; border-radius: 6px"
+              >
+                <source src="./resources/panda_four_4x.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </figure>
+            <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">Panda Four</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3" id="lego-assembly">LEGO Assembly</h2>
+            <div class="content has-text-justified">
+              <p>
+                We evaluate long-horizon dual-arm LEGO assembly tasks described in <a href="https://github.com/intelligent-control-lab/APEX-MR">APEX-MR</a> and measure runtime across task assignment, motion planning, and TPG construction.
+              </p>
+            </div>
+
+            <div class="columns is-variable is-4 is-multiline">
+              <div class="column is-half">
+                <figure class="image">
+                  <img src="./resources/lego_robot_env.png" alt="Dual-arm LEGO assembly environment and tasks." />
+                </figure>
+              </div>
+              <div class="column is-half">
+                <p class="content has-text-justified">
+                  Table 2: Final runtime and makespan for assembly planning, with and without vector acceleration averaged over 4 seeds.
+                </p>
+                <div class="table-container">
+                  <table class="table is-fullwidth is-striped is-hoverable is-size-7 result-table">
+                    <thead>
+                      <tr>
+                        <th>Metric</th>
+                        <th class="has-text-right">Cliff</th>
+                        <th class="has-text-right">Vessel</th>
+                        <th class="has-text-right">RSS</th>
+                        <th class="has-text-right">Chair</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="5"><em>FCL-Based</em></td>
+                      </tr>
+                      
+                      <tr>
+                        <td><strong>Total Time (s)</strong></td>
+                        <td class="has-text-right"><strong>12.1</strong></td>
+                        <td class="has-text-right"><strong>32.2</strong></td>
+                        <td class="has-text-right"><strong>71.5</strong></td>
+                        <td class="has-text-right"><strong>845.2</strong></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Final Makespan (s)</strong></td>
+                        <td class="has-text-right"><strong>185</strong></td>
+                        <td class="has-text-right"><strong>397</strong></td>
+                        <td class="has-text-right"><strong>741</strong></td>
+                        <td class="has-text-right"><strong>2180</strong></td>
+                      </tr>
+
+                      <tr>
+                        <td colspan="5"><em>Ours</em></td>
+                      </tr>
+                      
+                      <tr>
+                        <td><strong>Total Time (s)</strong></td>
+                        <td class="has-text-right"><strong>3.39</strong></td>
+                        <td class="has-text-right"><strong>8.38</strong></td>
+                        <td class="has-text-right"><strong>31.2</strong></td>
+                        <td class="has-text-right"><strong>59.3</strong></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Final Makespan (s)</strong></td>
+                        <td class="has-text-right"><strong>159</strong></td>
+                        <td class="has-text-right"><strong>340</strong></td>
+                        <td class="has-text-right"><strong>542</strong></td>
+                        <td class="has-text-right"><strong>2146</strong></td>
+                      </tr>
+                      <tr>
+                        <td># of Bricks</td>
+                        <td class="has-text-right">11</td>
+                        <td class="has-text-right">36</td>
+                        <td class="has-text-right">47</td>
+                        <td class="has-text-right">258</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="content has-text-justified" style="margin-top: 1.5rem">
+              <p>
+                Assembly executions (all videos are 10× speed):
+              </p>
+            </div>
+            <div class="columns is-variable is-4 is-multiline">
+              <div class="column is-half">
+                <figure class="image" style="margin-top: 0.75rem">
+                  <video
+                    controls
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                    style="width: 100%; border-radius: 6px"
+                  >
+                    <source src="./resources/lego_cliff_meshcat.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </figure>
+                <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">Cliff (11 bricks)</p>
+              </div>
+              <div class="column is-half">
+                <figure class="image" style="margin-top: 0.75rem">
+                  <video
+                    controls
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                    style="width: 100%; border-radius: 6px"
+                  >
+                    <source src="./resources/lego_guitar_meshcat.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </figure>
+                <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">Vessel (36 bricks)</p>
+              </div>
+              <div class="column is-half">
+                <figure class="image" style="margin-top: 0.75rem">
+                  <video
+                    controls
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                    style="width: 100%; border-radius: 6px"
+                  >
+                    <source src="./resources/lego_rss_meshcat.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </figure>
+                <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">RSS (47 bricks)</p>
+              </div>
+              <div class="column is-half">
+                <figure class="image" style="margin-top: 0.75rem">
+                  <video
+                    controls
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                    style="width: 100%; border-radius: 6px"
+                  >
+                    <source src="./resources/lego_chair_meshcat.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </figure>
+                <p class="has-text-centered is-size-11" style="margin-top: 0.5rem">Chair (258 bricks)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3" id="code">Code</h2>
+            <div class="content has-text-justified">
+              <p>
+                The main repository is <a href="https://github.com/vamp-mr/vamp-mr">vamp-mr/vamp-mr</a>. 
+                Our codebase is built on top of <a href="https://github.com/KavrakiLab/vamp">vamp</a> and <a href="https://github.com/intelligent-control-lab/APEX-MR">APEX-MR</a>.
+                We support a set of prebuilt environments and an easy-to-use Python interface to define and run new multi-robot-arm environments from a portable JSON config.
+              </p>
+              <p><strong>Python Example</strong></p>
+            </div>
+
+            <pre><code class="language-bash"># Generate a new environment (compiles a C++ plugin for the new multi-robot-arm setup)
+python3 mr_planner_core/scripts/plugins/generate_vamp_robot_plugin.py \
+  --env-name my_robot_env \
+  --base-transforms ${path_to_transforms}.json \
+  --robot-header /usr/local/include/vamp/robots/panda.hh \
+  --robot-struct Panda \
+  --num-robots 4 </code></pre>
+
+            <pre><code class="language-python"># Plan using the generated environment JSON
+import mr_planner_core
+env = mr_planner_core.VampEnvironment("my_robot_env.json")
+res = env.plan(planner="composite_rrt", planning_time=5.0, shortcut_time=0.1, seed=1)
+  </code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="citation">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <h2 class="title is-3">Citation</h2>
+            <div class="content has-text-justified">
+              <p>If you find our work useful, please cite our IROS 2026 paper:</p>
+            </div>
+            <pre><code>@inproceedings{huang2026vampmr,
+  title        = {VAMP-MR: Vector-Accelerated Motion Planning and Execution for Multi-Robot-Arms},
+  author       = {Huang, Philip and Gao, Chenrui and Li, Jiaoyang},
+  booktitle    = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  year         = {2026}
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+      </main>
+    </div>
+
+    <section class="section">
+      <div class="columns is-centered">
+        <div class="column is-full-width">
+          <div class="is-vcentered interpolation-panel">
+            <h2 class="title is-2" style="text-align: center;">Related Works</h2>
+            <div class="content is-centered has-text-centered">
+              This work is part of our research on <strong>Multi-Robot Task and Motion Planning</strong> and <strong>generative LEGO assembly</strong>.
+              Please explore our other works below.
+            </div>
+
+            <div class="container">
+              <div class="columns is-vcentered">
+                <!-- Image Column -->
+                <div class="column is-4">
+                  <figure class="image">
+                    <img src="./resources/apex.gif" alt="RMA Image">
+                  </figure>
+                </div>
+
+                <!-- Text Column -->
+                <div class="column is-8">
+                  <h2 class="title is-4">APEX-MR: Multi-Robot Asynchronous Planning and Execution for Cooperative Assembly </h2>
+                  <p>
+                    Philip Huang*, Ruixuan Liu*, Shobhit Aggarwal, Changliu Liu, and Jiaoyang Li
+                    <br />
+                    RSS, 2025
+                  </p>
+                  <p>
+                    <a href="https://arxiv.org/abs/2503.15836"
+                      class="button is-link">Paper</a>
+                    <a href="https://intelligent-control-lab.github.io/APEX-MR/" class="button is-link">Website</a>
+                    <!--                <a href="https://ashish-kmr.github.io/rma-legged-robots/" class="button is-link">Project Page</a>-->
+                  </p>
+                </div>
+              </div>
+            </div>
+
+
+            <div class="container">
+              <div class="columns is-vcentered">
+                <!-- Image Column -->
+                <div class="column is-4">
+                  <figure class="image">
+                    <img src="./resources/p2p.gif" alt="RMA Image">
+                  </figure>
+                </div>
+
+                <!-- Text Column -->
+                <div class="column is-8">
+                  <h2 class="title is-4">Prompt-to-Product: Generative Assembly via Bimanual Manipulation </h2>
+                  <p>
+                    Ruixuan Liu* , Philip Huang*, Ava Pun, Kangle Deng, Shobhit Agarwal, Kevin Tang, Michelle Liu, Deva Ramanan, Jun-Yan Zhu, Jiaoyang Li, Changliu Liu
+                    <br />
+                    Preprint, 2025
+                  </p>
+                  <p>
+                    <a href="https://arxiv.org/abs/2508.21063"
+                      class="button is-link">Preprint</a>
+                    <a href="http://icontrol.ri.cmu.edu/research/lego.html"
+                      class="button is-link">Website</a>
+                    <a href="https://youtu.be/F1cG9U48noc?si=hh48E9TViM2EaTeO"
+                      class="button is-link">Video</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+
+            <div class="container">
+              <div class="columns is-vcentered">
+                <!-- Image Column -->
+                <div class="column is-4">
+                  <figure class="image">
+                    <img src="./resources/mr-shortcut-compressed.gif" alt="RMA Image">
+                  </figure>
+                </div>
+
+                <!-- Text Column -->
+                <div class="column is-8">
+                  <h2 class="title is-4">Benchmarking Shortcutting Techniques for Multi-Robot Arm Motion Planning </h2>
+                  <p>
+                    Philip Huang, Yorai Shaoul, Jiaoyang Li
+                    <br />
+                    IROS, 2025
+                  </p>
+                  <p>
+                    <a href="https://arxiv.org/pdf/2508.05027v1" class="button is-link">Paper</a>
+                    <a href="https://philip-huang.com/mr-shortcut/"
+                      class="button is-link">Website</a>
+                    <a href=""https://youtu.be/R6JYAEpotMI" class="button is-link">Video</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="container">
+              <div class="columns is-vcentered">
+                <!-- Image Column -->
+                <div class="column is-4">
+                  <figure class="image">
+                    <img src="./resources/mramp-icaps2024.gif" alt="RMA Image">
+                  </figure>
+                </div>
+
+                <!-- Text Column -->
+                <div class="column is-8">
+                  <h2 class="title is-4"> Accelerating Search-Based Planning for Multi-Robot Manipulation by Leveraging Online-Generated Experiences   </h2>
+                  <p>
+                    Yorai Shaoul*, Itamar Mishani*, Maxim Likhachev,  Jiaoyang Li
+                    <br />
+                    ICAPS, 2024
+                  </p>
+                  <p>
+                    <a href="https://arxiv.org/abs/2404.00143"
+                      class="button is-link">Paper</a>
+                      <a href="https://x-cbs.github.io/" class="button is-link">Website</a>
+                    <!--                <a href="https://ashish-kmr.github.io/rma-legged-robots/" class="button is-link">Project Page</a>-->
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="content has-text-centered">
+          <p>
+            Website template adapted from a Nerfies-style academic project page. Hosted via GitHub Pages.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+  </body>
+</html>
