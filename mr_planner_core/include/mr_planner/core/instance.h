@@ -172,6 +172,21 @@ struct LinkCollision
     Object link_b;
 };
 
+/// One collision sphere of a robot at a given pose, reported by
+/// PlanInstance::debugRobotSpheres. World-frame center, matching what the
+/// Meshcat visualizer draws for the same robot/pose.
+struct SphereInfo
+{
+    int robot_id{-1};
+    std::string robot;
+    std::string link;
+    int sphere_index{0};
+    double x{0.0};
+    double y{0.0};
+    double z{0.0};
+    double radius{0.0};
+};
+
 // Forward declaration of the hash function
 namespace std {
     template <>
@@ -335,6 +350,15 @@ public:
     {
         (void)poses;
         (void)self;
+        return {};
+    }
+    // Optional debug hook: return every collision sphere of one robot at the given
+    // pose, in world frame. Lets a caller draw exactly what the collision backend
+    // checks (e.g. a permanently-attached gripper the display URDF doesn't have).
+    virtual std::vector<SphereInfo> debugRobotSpheres(std::size_t robot_id, const RobotPose &pose)
+    {
+        (void)robot_id;
+        (void)pose;
         return {};
     }
 

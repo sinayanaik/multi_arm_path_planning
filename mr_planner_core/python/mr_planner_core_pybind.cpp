@@ -1182,6 +1182,69 @@ public:
         return instance_->checkCollision({pose}, self_only);
     }
 
+    static py::list link_collisions_to_py(const std::vector<LinkCollision> &pairs)
+    {
+        py::list out;
+        for (const auto &lc : pairs)
+        {
+            py::dict d;
+            d["robot_a"] = lc.robot_a;
+            d["link_a"] = lc.link_a.name;
+            d["robot_b"] = lc.robot_b;
+            d["link_b"] = lc.link_b.name;
+            out.append(std::move(d));
+        }
+        return out;
+    }
+
+    py::list colliding_links(const std::vector<std::vector<double>> &joint_positions, bool self_only)
+    {
+        const int num_robots = instance_->getNumberOfRobots();
+        if (static_cast<int>(joint_positions.size()) != num_robots)
+        {
+            throw std::runtime_error("joint_positions robot count mismatch (expected " + std::to_string(num_robots) +
+                                     ", got " + std::to_string(joint_positions.size()) + ")");
+        }
+        std::vector<RobotPose> poses;
+        poses.reserve(joint_positions.size());
+        for (int rid = 0; rid < num_robots; ++rid)
+        {
+            RobotPose pose = instance_->initRobotPose(rid);
+            pose.joint_values = joint_positions[static_cast<std::size_t>(rid)];
+            poses.push_back(std::move(pose));
+        }
+        return link_collisions_to_py(instance_->debugCollidingLinks(poses, self_only));
+    }
+
+    py::list colliding_links_robot(int robot_id, const std::vector<double> &joint_positions, bool self_only)
+    {
+        RobotPose pose = instance_->initRobotPose(robot_id);
+        pose.joint_values = joint_positions;
+        return link_collisions_to_py(instance_->debugCollidingLinks({pose}, self_only));
+    }
+
+    py::list robot_spheres(int robot_id, const std::vector<double> &joint_positions)
+    {
+        RobotPose pose = instance_->initRobotPose(robot_id);
+        pose.joint_values = joint_positions;
+        const auto spheres = instance_->debugRobotSpheres(static_cast<std::size_t>(robot_id), pose);
+        py::list out;
+        for (const auto &s : spheres)
+        {
+            py::dict d;
+            d["robot_id"] = s.robot_id;
+            d["robot"] = s.robot;
+            d["link"] = s.link;
+            d["sphere_index"] = s.sphere_index;
+            d["x"] = s.x;
+            d["y"] = s.y;
+            d["z"] = s.z;
+            d["radius"] = s.radius;
+            out.append(std::move(d));
+        }
+        return out;
+    }
+
     bool motion_in_collision(const std::vector<std::vector<double>> &start,
                              const std::vector<std::vector<double>> &goal,
                              double step_size,
@@ -3290,6 +3353,19 @@ PYBIND11_MODULE(_mr_planner_core, m)
              py::arg("robot_id"),
              py::arg("joint_positions"),
              py::arg("self_only") = false)
+        .def("colliding_links",
+             &VampEnvironment::colliding_links,
+             py::arg("joint_positions"),
+             py::arg("self_only") = false)
+        .def("colliding_links_robot",
+             &VampEnvironment::colliding_links_robot,
+             py::arg("robot_id"),
+             py::arg("joint_positions"),
+             py::arg("self_only") = false)
+        .def("robot_spheres",
+             &VampEnvironment::robot_spheres,
+             py::arg("robot_id"),
+             py::arg("joint_positions"))
         .def("motion_in_collision",
              &VampEnvironment::motion_in_collision,
              py::arg("start"),

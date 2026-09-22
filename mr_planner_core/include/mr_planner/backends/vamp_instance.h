@@ -137,6 +137,7 @@ public:
     void setPadding(double /*padding*/) override {}
     void setRandomSeed(unsigned int seed) override;
     std::vector<LinkCollision> debugCollidingLinks(const std::vector<RobotPose> &poses, bool self) override;
+    std::vector<SphereInfo> debugRobotSpheres(std::size_t robot_id, const RobotPose &pose) override;
 
     void updateScene() override;
     void resetScene(bool reset_sim) override;
@@ -1132,6 +1133,61 @@ std::vector<LinkCollision> VampInstance<RobotTs...>::debugCollidingLinks(const s
     }
 
     throw std::invalid_argument("VampInstance: unsupported robot subset in debugCollidingLinks");
+}
+
+template <typename... RobotTs>
+std::vector<SphereInfo> VampInstance<RobotTs...>::debugRobotSpheres(std::size_t robot_id, const RobotPose &pose)
+{
+    std::vector<SphereInfo> result;
+    if (robot_id >= kRobotCount || pose.joint_values.empty())
+    {
+        return result;
+    }
+
+    bool handled = false;
+    for_each_index(std::make_index_sequence<kRobotCount>{}, [&](auto idx_c) {
+        // Compile-time loop to pick the correct robot type; only the matching
+        // index executes the body while the rest return immediately.
+        if (handled || idx_c.value != robot_id)
+        {
+            return;
+        }
+        using Robot = RobotAt<idx_c.value>;
+        typename Robot::template Spheres<kRake> spheres{};
+        Robot::sphere_fk(configurationBlockFromPose<Robot>(pose), spheres);
+
+        const Eigen::Isometry3f base_tf = base_transforms_[robot_id];
+        result.reserve(Robot::n_spheres);
+        for (std::size_t i = 0; i < Robot::n_spheres; ++i)
+        {
+            const float lx = static_cast<float>(spheres.x[{i, 0}]);
+            const float ly = static_cast<float>(spheres.y[{i, 0}]);
+            const float lz = static_cast<float>(spheres.z[{i, 0}]);
+            const float radius = static_cast<float>(spheres.r[{i, 0}]);
+            const Eigen::Vector3f world = base_tf * Eigen::Vector3f(lx, ly, lz);
+
+            SphereInfo info;
+            info.robot_id = static_cast<int>(robot_id);
+            if (robot_id < robot_names_.size())
+            {
+                info.robot = robot_names_[robot_id];
+            }
+            info.link = linkNameForSphere<Robot>(i);
+            info.sphere_index = static_cast<int>(i);
+            info.x = static_cast<double>(world.x());
+            info.y = static_cast<double>(world.y());
+            info.z = static_cast<double>(world.z());
+            info.radius = static_cast<double>(radius);
+            result.push_back(std::move(info));
+        }
+        handled = true;
+    });
+
+    if (!handled)
+    {
+        throw std::out_of_range("VampInstance: robot index out of range in debugRobotSpheres");
+    }
+    return result;
 }
 
 template <typename... RobotTs>

@@ -80,6 +80,16 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /scene
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Collision spheres
+      Enabled: true
+      Namespaces: {}
+      Topic:
+        Depth: 10
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /collision_spheres
     - Class: rviz_default_plugins/TF
       Name: TF
       Enabled: false

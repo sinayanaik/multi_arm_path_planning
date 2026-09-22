@@ -17,7 +17,8 @@ from rclpy.time import Time
 from sensor_msgs.msg import JointState
 
 from vamp_mr_arms import world
-from vamp_mr_arms.arms import WORLD_FRAME, load_config, publish_scene
+from vamp_mr_arms.arms import (WORLD_FRAME, collision_sphere_markers, load_config,
+                                publish_collision_spheres, publish_scene)
 
 POSE_FIELDS = ["x", "y", "z", "roll", "pitch", "yaw"]
 POSE_COLUMNS = ["x_m", "y_m", "z_m", "roll_rad", "pitch_rad", "yaw_rad"]
@@ -35,11 +36,29 @@ class Teach(Node):
         super().__init__("teach")
         self.declare_parameter("config", "")
         self.declare_parameter("output", "waypoints.csv")
+        self.declare_parameter("meshcat", False)
+        self.declare_parameter("meshcat_host", "127.0.0.1")
+        self.declare_parameter("meshcat_port", 7600)
         self.config = load_config(self.get_parameter("config").value)
         self.arms = self.config["arms"]
         self.output = Path(self.get_parameter("output").value).expanduser().resolve()
         self.environment = world.build(self.config)
         publish_scene(self, self.config)
+        self.collision_spheres_pub = publish_collision_spheres(self)
+        self.collision_spheres_supported = True
+
+        self.meshcat_enabled = bool(self.get_parameter("meshcat").value)
+        if self.meshcat_enabled:
+            host = self.get_parameter("meshcat_host").value
+            port = self.get_parameter("meshcat_port").value
+            self.environment.enable_meshcat(host, port)
+            self.get_logger().info(
+                f"meshcat enabled, streaming to {host}:{port} -- this shows VAMP's actual "
+                "collision geometry (spheres, including the attached gripper) alongside "
+                "RViz's mesh view. Start the bridge first if you haven't: "
+                "python3 <mr_planner_core>/scripts/visualization/meshcat_bridge.py "
+                f"--port {port} -- its terminal output prints the viewer URL to open in a "
+                "browser.")
 
         self.history = {arm["name"]: deque(maxlen=64) for arm in self.arms}
         for arm in self.arms:
@@ -81,6 +100,29 @@ class Teach(Node):
         return world.collision_reason(
             self.environment, self.arms,
             [sample[:len(arm["joints"])] for arm, sample in zip(self.arms, samples)])
+
+    def push_meshcat(self, samples):
+        if self.meshcat_enabled:
+            self.environment.set_joint_positions(
+                [sample[:len(arm["joints"])] for arm, sample in zip(self.arms, samples)])
+
+    def publish_collision_spheres(self, samples):
+        if not self.collision_spheres_supported:
+            return
+        try:
+            spheres = [sphere
+                       for index, (arm, sample) in enumerate(zip(self.arms, samples))
+                       for sphere in self.environment.robot_spheres(
+                           index, sample[:len(arm["joints"])])]
+        except AttributeError:
+            self.collision_spheres_supported = False
+            self.get_logger().warning(
+                "environment.robot_spheres() is missing -- mr_planner_core needs a rebuild "
+                "and reinstall (cmake --build build -j && sudo cmake --install build) to "
+                "pick up the collision-sphere visualization; not publishing /collision_spheres "
+                "until then.")
+            return
+        self.collision_spheres_pub.publish(collision_sphere_markers(spheres, world.GRIPPER_LINKS))
 
     def record(self, name):
         samples = self.state()
@@ -128,7 +170,7 @@ class Toolbar(tk.Tk):
         ttk.Button(toolbar, text="Save CSV", command=self.node.save).pack(side="left", padx=2)
         ttk.Button(toolbar, text="Clear", command=self.clear).pack(side="left", padx=2)
         self.validity = tk.StringVar(value="waiting for joint states and TF")
-        ttk.Label(toolbar, textvariable=self.validity, width=38).pack(side="left", padx=12)
+        ttk.Label(toolbar, textvariable=self.validity, width=64).pack(side="left", padx=12)
         self.status = tk.StringVar(value="0 recorded")
         ttk.Label(toolbar, textvariable=self.status).pack(side="left")
 
@@ -156,10 +198,19 @@ class Toolbar(tk.Tk):
         self.status.set("cleared")
 
     def tick(self):
+        try:
+            self._tick()
+        except Exception:
+            self.node.get_logger().error("tick() failed", exc_info=True)
+        self.after(TICK_MS, self.tick)
+
+    def _tick(self):
         samples = self.node.state()
         if samples is None:
             self.validity.set("waiting for joint states and TF")
         else:
+            self.node.push_meshcat(samples)
+            self.node.publish_collision_spheres(samples)
             reason = self.node.reason(samples)
             self.validity.set(f"cannot plan: {reason}" if reason else "plannable")
             for arm, sample in zip(self.node.arms, samples):
@@ -171,7 +222,6 @@ class Toolbar(tk.Tk):
                     label.set(f"{value:.4f}")
                 for label, value in zip(pose_labels[3:], sample[split + 3:]):
                     label.set(f"{math.degrees(value):.2f}")
-        self.after(TICK_MS, self.tick)
 
 
 def main():

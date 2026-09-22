@@ -25,9 +25,13 @@ scene:
   - {name: work_table_leg_fr,     role: table,    size: [0.07, 0.07, 0.78], xyz: [0.68, 0.08, 0.39]}
   - {name: work_table_leg_bl,     role: table,    size: [0.07, 0.07, 0.78], xyz: [-0.68, -0.58, 0.39]}
   - {name: work_table_leg_br,     role: table,    size: [0.07, 0.07, 0.78], xyz: [0.68, -0.58, 0.39]}
-  - {name: conveyor_belt,         role: conveyor, size: [1.80, 0.50, 0.06], xyz: [0.00, 0.35, 0.750]}
-  - {name: conveyor_leg_left,     role: conveyor, size: [0.08, 0.08, 0.72], xyz: [-0.80, 0.35, 0.36]}
-  - {name: conveyor_leg_right,    role: conveyor, size: [0.08, 0.08, 0.72], xyz: [0.80, 0.35, 0.36]}
+  # conveyor_belt's y keeps its near edge (0.51 - 0.25 = 0.26) just clear of work_table_top's
+  # far edge (-0.25 + 0.40 = 0.25): these are two separate boxes, and VAMP never checks
+  # scene objects against each other, so an overlap here wouldn't affect planning -- but it
+  # would render as the two slabs visibly interpenetrating in RViz.
+  - {name: conveyor_belt,         role: conveyor, size: [1.80, 0.50, 0.06], xyz: [0.00, 0.51, 0.750]}
+  - {name: conveyor_leg_left,     role: conveyor, size: [0.08, 0.08, 0.72], xyz: [-0.80, 0.51, 0.36]}
+  - {name: conveyor_leg_right,    role: conveyor, size: [0.08, 0.08, 0.72], xyz: [0.80, 0.51, 0.36]}
   - {name: bin_left,              role: source,   size: [0.20, 0.20, 0.10], xyz: [-0.35, 0.35, 0.830]}
   - {name: bin_right,             role: source,   size: [0.20, 0.20, 0.10], xyz: [0.35, 0.35, 0.830]}
   - {name: target_box,            role: target,   size: [0.26, 0.26, 0.11], xyz: [0.00, -0.02, 0.885]}
@@ -38,9 +42,11 @@ display_only:
   - {name: ur5_riser,  role: riser, size: [0.18, 0.18, 0.0844], xyz: [-0.35, -0.25, 0.8722]}
   - {name: ur7e_riser, role: riser, size: [0.18, 0.18, 0.0844], xyz: [0.35, -0.25, 0.8722]}
 
-# End-effector (gripper base) target per arm, in the world frame. The gripper's collision
-# spheres need about 0.22 m above a surface, so 1.06 is the lowest reachable point over a
-# bin (lid at 0.88) and 1.11 over the target box (rim at 0.94).
+# End-effector (gripper base) target per arm, in the world frame. 1.06/1.11 over the bin lid
+# (0.88) and target rim (0.94) were sized to clear the gripper's ~0.22 m collision spheres;
+# world.build() now allow-lists GRIPPER_LINKS against scene objects (see README "What the
+# planner actually sees"), so these heights are more conservative than the bare arm needs --
+# safe to tighten if you want the arms to dip further.
 routine:
   - {name: home,        ur5: [-0.35, -0.05, 1.25], ur7e: [0.35, -0.05, 1.25]}
   - {name: over_bins,   ur5: [-0.35, 0.35, 1.16],  ur7e: [0.35, 0.35, 1.16]}

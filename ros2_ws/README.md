@@ -5,9 +5,15 @@ conveyor in front of them carrying two source bins, and a target box on their ow
 Both arms sweep from the bins to the box as **one coordinated motion planned by VAMP-MR**,
 and RViz replays exactly the trajectory the planner returned.
 
-Nothing in the parent repository is modified, and no URDF is edited anywhere: `vamp` and
-`mr_planner_core` are used from their existing `/usr/local` install, and both arms are
-displayed straight from the vendored `ur_description`.
+No URDF is edited anywhere: both arms are displayed straight from the vendored
+`ur_description`. `vamp` is used unmodified from its existing `/usr/local` install.
+`mr_planner_core` gained two small collision-diagnostic bindings
+(`colliding_links` / `colliding_links_robot`, wrapping its existing but previously-unbound
+`PlanInstance::debugCollidingLinks`) in its own repo at
+`/home/tcs-research/Documents/multi_arm_path_planning/mr_planner_core`; after pulling changes
+there, rebuild and reinstall it (`cmake --build build -j && sudo cmake --install build`)
+before this workspace's `collision_reason()` messages will include the colliding link/object
+names.
 
 ```bash
 tools/make_env.sh                       # once: build the VAMP plugin + environment JSON
@@ -23,7 +29,7 @@ ros2 launch vamp_mr_arms plan.launch.py waypoints:=routine.csv  # replay what yo
 
 ```
         y
-        ^                     conveyor  belt top 0.78, 1.80 x 0.50
+        ^                     conveyor  belt top 0.78, 1.80 x 0.50,  y = +0.51
         |        +-------------------------------------------+
         |        |   [ bin_left ]             [ bin_right ]  |   0.20 x 0.20 x 0.10, lid 0.88
         |        +-------------------------------------------+
@@ -43,10 +49,15 @@ face the conveyor: `shoulder_pan = 0` points along +y.
 | Feature | Footprint (m) | Top surface (m) | Centre (m) |
 |---|---|---|---|
 | work table | 1.50 x 0.80 | 0.83 | `(0.00, -0.25)` |
-| conveyor belt | 1.80 x 0.50 | 0.78 | `(0.00, +0.35)` |
+| conveyor belt | 1.80 x 0.50 | 0.78 | `(0.00, +0.51)` |
 | `bin_left` / `bin_right` | 0.20 x 0.20 | 0.88 | `(-+0.35, +0.35)` |
 | `target_box` | 0.26 x 0.26 | 0.94 | `(0.00, -0.02)` |
 | arm mounting flange | — | 0.9144 | `(-+0.35, -0.25)` |
+
+The conveyor sits off-center from the bins it carries (y = +0.51 vs. their +0.35) so its
+footprint clears the work table's (y = -0.65 to +0.15) rather than overlapping it by ~5 cm.
+VAMP never checks scene objects against each other, so that overlap never affected planning —
+it only ever showed up as the two slabs visibly interpenetrating in RViz.
 
 The routine is `home → over_bins → at_bins → lift → over_target → place → retreat`, written
 in `config/arms.yaml` as one end-effector position per arm per waypoint. Each consecutive
@@ -86,12 +97,21 @@ sits at 0.8344. A top at 0.86 already collides at the tucked pose. The table top
 volume is already occupied by the robot's own base sphere, so it must never be handed to the
 planner as an obstacle. `display_only` entries in `arms.yaml` exist for exactly this.
 
-**4. The gripper reserves about 0.22 m above any surface.**
-The planner checks a gripper neither arm on screen is wearing, so its clearances err toward
-caution. The lowest reachable end-effector heights measured in this cell are **1.05 m** over
-a bin lid (0.88) and **1.10 m** over the target box rim (0.94); the routine uses 1.06 and
-1.11. That is why `at_bins` and `place` hover rather than dip — this cell represents the
-pick-and-place motion, it does not grasp or attach anything.
+**4. The gripper is excluded from scene-object collision checks.**
+VAMP's compiled UR5 model permanently includes a Robotiq 85 gripper + FTS300 sensor as ten
+extra links (`fts_robotside` and the nine `robotiq_85_*` links, `GRIPPER_LINKS` in
+`world.py`), on top of the bare arm neither arm on screen is wearing — so a rejected pose
+could name a gripper link colliding with a bin or the conveyor that was nowhere near what
+RViz showed. `world.build()` now calls `environment.set_allowed_collision("*", link, True)`
+for each of those links, so they no longer collide with scene objects. This does **not**
+cover gripper self-collision or gripper-vs-other-arm: those checks are unrolled into VAMP's
+own installed `/usr/local/include/vamp/robots/ur5.hh`, outside this repo, with no filter hook
+— removing them would mean patching that third-party header directly (fragile, and reverts
+on any `vamp` reinstall), so it hasn't been done. In practice this has never been what
+actually triggered a rejection in this cell. The routine's hover heights (`at_bins` 1.06,
+`place` 1.11, vs. bin lid 0.88 / target rim 0.94) were originally sized to clear the now-
+excluded gripper and are more conservative than the bare arm needs — safe to tighten if you
+want the arms to dip further.
 
 Also worth knowing: the plugin reports **7 DOF** per arm (six joints plus the gripper
 finger). A trailing seventh value is accepted and ignored by the collision model, so the
@@ -125,6 +145,58 @@ live end-effector pose, and — the part that matters — whether the current po
 **plannable**. `Record` refuses a pose the planner cannot use and says why (`ur7e folds into
 itself`, `the arms hit each other`, `ur5 hits the cell`), so a saved CSV is plannable by
 construction. `Save CSV` writes it out.
+
+The reason names the exact colliding pair, e.g. `ur5 hits the cell (forearm_link hits
+work_table_top)`. Gripper links (`fts_robotside`, `robotiq_85_*`) never appear here against
+scene objects — VAMP's compiled UR5 model permanently includes that gripper, but
+`world.build()` allow-lists it against every scene object (see "What the planner actually
+sees" above), since neither arm on screen wears one. A rejection can still look surprising
+from a 2D screenshot even so: a link can be sitting right above an obstacle, invisibly close
+in Z, while camera perspective makes it look nowhere near. Read the `tool0` pose numbers in
+the toolbar, not just the picture, if a rejection looks wrong — VAMP's own forward kinematics
+decided it, not what the camera angle makes it look like.
+
+### Seeing what the planner actually checks (Meshcat)
+
+`teach.launch.py` can stream VAMP's real collision geometry — every sphere it approximates
+each arm with, gripper included, plus the scene boxes — to a browser, live, as you jog the
+sliders. Meshcat draws VAMP's raw spheres unfiltered, so the gripper spheres will still show
+overlapping scene objects there even though `world.build()`'s allow-list means that overlap
+is no longer reported as a collision — Meshcat shows geometry, not the collision verdict. It
+needs the `meshcat` bridge running first:
+
+```bash
+# terminal 1 — start once, leave running
+python3 /home/tcs-research/Documents/multi_arm_path_planning/mr_planner_core/scripts/visualization/meshcat_bridge.py --port 7600
+```
+
+It prints two lines: `[bridge] Meshcat server started at http://127.0.0.1:<some-port>/static/`
+and `[bridge] Listening on ('127.0.0.1', 7600)`. The first is the browser URL — open it (its
+port is picked independently by the `meshcat` package, not `--port`, so read it from the
+output rather than assuming a number). The second confirms it's listening on `--port`, which
+is the one `teach.launch.py`'s `meshcat_port` must match. Then in a second terminal:
+
+```bash
+# terminal 2
+ros2 launch vamp_mr_arms teach.launch.py meshcat:=true meshcat_port:=7600
+```
+
+The `teach` node logs `meshcat enabled, streaming to ...` once connected. If the bridge isn't
+up yet, `push_meshcat` retries the connection on every GUI tick (20 Hz), so it self-heals once
+you start the bridge — but expect a `[meshcat] connection failed: connection refused` warning
+on every tick until then, which is harmless but noisy; start the bridge first to avoid it.
+`meshcat_port` defaults to `7600` and only needs setting if you changed `--port` above.
+
+### Seeing it without leaving RViz (`/collision_spheres`)
+
+`teach` also publishes a `MarkerArray` on `/collision_spheres` every tick — one translucent
+sphere per collision sphere of each arm, in `arms.rviz` already (enabled by default) — no
+bridge, no browser. It needs `mr_planner_core` rebuilt and reinstalled for
+`environment.robot_spheres()` to exist (`cmake --build build -j && sudo cmake --install
+build` in `mr_planner_core`); until then `teach` logs one warning and skips the topic rather
+than failing. Gripper spheres are drawn too, in yellow (arm spheres are orange-red) — they're
+allow-listed against scene objects (§4 above) but still checked for self-collision and
+arm-vs-arm, so they stay visible rather than looking removed when they aren't fully gone.
 
 One row per waypoint: `name`, then each arm's six joints (rad, already wrapped into ±π)
 followed by its end-effector pose (m and rad). Only the joint columns are planned with; the
@@ -174,6 +246,7 @@ Measured effect of the two you are most likely to touch: `vmax: 2.5` → 4.92 s 
 | Topic | Type | Notes |
 |---|---|---|
 | `/scene` | `MarkerArray` | latched, one cube per `scene` + `display_only` entry |
+| `/collision_spheres` | `MarkerArray` | `teach` only, one sphere per collision sphere per arm (gripper spheres in yellow), needs `mr_planner_core`'s `robot_spheres` installed |
 | `/<arm>/joint_states` | `JointState` | the replay, at `dt / rate` (10 Hz by default) |
 | `/<arm>/trajectory` | `JointTrajectory` | latched, published once, `time_from_start` straight from the planner |
 | `/<arm>/robot_description` | `String` | from the unmodified `ur.urdf.xacro` |
@@ -184,7 +257,8 @@ Measured effect of the two you are most likely to touch: `vmax: 2.5` → 4.92 s 
   transforms at runtime, so you do *not* need to re-run `tools/make_env.sh`; the YAML is the
   only place the layout is written down.
 * **Change the cell** — add or edit `scene` entries. Remember the 0.834 m ceiling under the
-  arms and the 0.22 m the gripper reserves above anything you want to reach.
+  arms (§3 above); the gripper no longer reserves clearance above reachable surfaces since
+  it's excluded from scene-object collision checks (§4 above).
 * **Change the motion** — edit `routine`. A target the arm cannot reach, or a pair that
   collides, is reported by name before anything is planned.
 * **Change the robots** — `arms[].ur_type` picks any model in `ur_description`. The planner
@@ -200,8 +274,9 @@ Python nodes are **copied**, not symlinked, by `colcon build --symlink-install`,
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `waypoint 3 (pick): ur7e folds into itself` | that recorded pose is in self-collision | re-teach it; the toolbar now says `plannable` before you record |
-| `waypoint over_bins: ur5 cannot reach [...]` | routine target outside the arm's reach, or inside the gripper's 0.22 m clearance | raise the target or move it closer to the base |
+| `waypoint 3 (pick): ur7e folds into itself` | that recorded pose is in self-collision | re-teach it; the toolbar now says `plannable` before you record. If the named links are `robotiq_85_*`/`fts_robotside`, that's the gripper self-colliding with the arm — not filterable without patching VAMP's own installed header, see "What the planner actually sees" |
+| `... hits the cell (link hits ...)` with nothing visibly touching in RViz | a link (gripper excluded) can be much closer in Z to an obstacle than 2D perspective suggests | read the `tool0` numbers, or launch with `meshcat:=true` / check `/collision_spheres` to see it |
+| `waypoint over_bins: ur5 cannot reach [...]` | routine target outside the arm's reach | raise the target or move it closer to the base |
 | `leg home -> over_bins: Planning failed` | no collision-free path within `planning_time` | raise `planning_time`, or move the waypoints apart from the obstacles |
 | arms float above the table in RViz | `display_only` risers removed, or `PEDESTAL_Z` changed | leave the risers in; they are the 84 mm the base sphere occupies |
 | everything collides at every pose | table top raised above 0.834 m | lower `work_table_top` |

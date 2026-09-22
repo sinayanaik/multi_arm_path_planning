@@ -8,6 +8,18 @@ import mr_planner_core
 
 FULL_TURN = 2.0 * math.pi
 
+# VAMP's compiled UR5 model permanently includes a Robotiq 85 gripper + FTS300 sensor as
+# part of its own link chain (not a runtime attachment) -- these are its link names. Per
+# https://github.com/KavrakiLab (VAMP's link_mapping.hh), sphere indices 23-39 of the
+# UR5 model's 40 spheres belong to these links; indices 0-22 are the bare arm.
+GRIPPER_LINKS = [
+    "fts_robotside", "robotiq_85_base_link",
+    "robotiq_85_left_knuckle_link", "robotiq_85_left_finger_link",
+    "robotiq_85_left_inner_knuckle_link", "robotiq_85_left_finger_tip_link",
+    "robotiq_85_right_knuckle_link", "robotiq_85_right_finger_link",
+    "robotiq_85_right_inner_knuckle_link", "robotiq_85_right_finger_tip_link",
+]
+
 
 class Invalid(Exception):
     pass
@@ -45,19 +57,42 @@ def build(config):
         environment.set_robot_base_transform(index, base_matrix(arm["base"]))
     for entry in config["scene"]:
         environment.add_object(collision_box(entry))
+    # The gripper isn't part of this cell's display or intended motion (see GRIPPER_LINKS);
+    # stop it colliding with scene objects. This does not, and cannot without patching VAMP's
+    # own installed headers, cover gripper self-collision or gripper-vs-other-arm checks --
+    # those are baked into generated code outside this repo.
+    for link in GRIPPER_LINKS:
+        environment.set_allowed_collision("*", link, True)
     return environment
+
+
+def strip_object_prefix(name):
+    return name[len("object::"):] if name.startswith("object::") else name
+
+
+def describe_collision(environment, waypoint, index=None, self_only=False):
+    pairs = (environment.colliding_links_robot(index, waypoint[index], self_only=self_only)
+             if index is not None else environment.colliding_links(waypoint, self_only=self_only))
+    if not pairs:
+        return None
+    pair = pairs[0]
+    return f"{strip_object_prefix(pair['link_a'])} hits {strip_object_prefix(pair['link_b'])}"
 
 
 def collision_reason(environment, arms, waypoint):
     for index, arm in enumerate(arms):
         if environment.in_collision_robot(index, waypoint[index], self_only=True):
-            return f"{arm['name']} folds into itself"
+            detail = describe_collision(environment, waypoint, index, self_only=True)
+            return f"{arm['name']} folds into itself ({detail})" if detail else f"{arm['name']} folds into itself"
         if environment.in_collision_robot(index, waypoint[index]):
-            return f"{arm['name']} hits the cell"
+            detail = describe_collision(environment, waypoint, index)
+            return f"{arm['name']} hits the cell ({detail})" if detail else f"{arm['name']} hits the cell"
     if environment.in_collision(waypoint, self_only=True):
-        return "the arms hit each other"
+        detail = describe_collision(environment, waypoint, self_only=True)
+        return f"the arms hit each other ({detail})" if detail else "the arms hit each other"
     if environment.in_collision(waypoint):
-        return "the arms hit the cell"
+        detail = describe_collision(environment, waypoint)
+        return f"the arms hit the cell ({detail})" if detail else "the arms hit the cell"
     return ""
 
 
