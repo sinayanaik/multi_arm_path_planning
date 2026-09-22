@@ -1,140 +1,118 @@
-"""Plan the recorded waypoints as one coordinated multi-arm motion with VAMP-MR and
-replay it into RViz as joint states."""
+"""Plan the routine as one coordinated two-arm motion with VAMP-MR, then replay exactly
+that trajectory into RViz."""
 
 import csv
 from pathlib import Path
 
-import mr_planner_core
 import rclpy
 from rclpy.duration import Duration
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
-from rclpy.qos import QoSDurabilityPolicy, QoSProfile
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from visualization_msgs.msg import Marker, MarkerArray
 
-from vamp_mr_arms.arms import WORLD_FRAME, load_config
-
-LATCHED = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+from vamp_mr_arms import world
+from vamp_mr_arms.arms import LATCHED, load_config, publish_scene
 
 
 def read_waypoints(path, arms):
-    """One row per waypoint: name, then each arm's joints followed by its end-effector
-    pose. Only the joint columns are planned with; the pose columns are the human log."""
-    with Path(path).open() as handle:
-        rows = list(csv.reader(handle))[1:]
-    waypoints = []
-    for row in rows:
-        values, column = [], 1
+    with Path(path).expanduser().open() as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) < 2:
+        raise world.Invalid(f"{path}: a plan needs at least two waypoints")
+    names, waypoints = [], []
+    for number, row in enumerate(rows, start=1):
+        names.append(row.get("name") or f"row{number}")
+        waypoint = []
         for arm in arms:
-            values.append([float(v) for v in row[column:column + len(arm["joints"])]])
-            column += len(arm["joints"]) + 6
-        waypoints.append(values)
-    if len(waypoints) < 2:
-        raise SystemExit(f"{path}: need at least two waypoints to plan a leg")
-    return waypoints
+            columns = [f"{arm['name']}_{joint}_rad" for joint in arm["joints"]]
+            if any(row.get(column) is None for column in columns):
+                raise world.Invalid(f"{path}: row {number} has no joint columns for {arm['name']}")
+            waypoint.append(world.wrap([float(row[column]) for column in columns]))
+        waypoints.append(waypoint)
+    return names, waypoints
 
 
-class Plan(Node):
-    def __init__(self):
-        super().__init__("plan")
-        self.declare_parameter("config", "")
-        self.declare_parameter("waypoints", "waypoints.csv")
-        self.config = load_config(self.get_parameter("config").value)
-        self.arms = self.config["arms"]
-        settings = self.config["planning"]
+def publish_trajectories(node, arms, paths, times):
+    for arm, path in zip(arms, paths):
+        message = JointTrajectory()
+        message.joint_names = arm["joints"]
+        for stamp, configuration in zip(times, path):
+            point = JointTrajectoryPoint()
+            point.positions = [float(value) for value in configuration[:len(arm["joints"])]]
+            point.time_from_start = Duration(seconds=stamp).to_msg()
+            message.points.append(point)
+        node.create_publisher(JointTrajectory, f"/{arm['name']}/trajectory", LATCHED).publish(message)
 
-        self.environment = mr_planner_core.VampEnvironment(
-            self.config["env_json"], vmax=settings["vmax"], seed=settings["seed"])
-        for obstacle in self.config["obstacles"]:
-            self.environment.add_object(self.make_object(obstacle))
 
-        self.publish_obstacles()
-        trajectories = self.solve(
-            read_waypoints(self.get_parameter("waypoints").value, self.arms), settings)
+class Replay:
+    def __init__(self, node, arms, paths, settings, period):
+        self.node, self.arms, self.paths = node, arms, paths
+        self.loop, self.step = settings["loop"], 0
+        self.publishers = [node.create_publisher(JointState, f"/{arm['name']}/joint_states", 10)
+                           for arm in arms]
+        node.create_timer(period, self.tick)
 
-        self.joint_publishers = [
-            self.create_publisher(JointState, f"/{arm['name']}/joint_states", 10)
-            for arm in self.arms]
-        self.publish_paths(trajectories, settings["dt"])
-
-        self.trajectories = trajectories
-        self.step = 0
-        self.create_timer(settings["dt"], self.play)
-
-    @staticmethod
-    def make_object(obstacle):
-        item = mr_planner_core.Object()
-        item.name = obstacle["name"]
-        item.length, item.width, item.height = obstacle["size"]
-        item.x, item.y, item.z = obstacle["xyz"]
-        return item
-
-    def solve(self, waypoints, settings):
-        trajectories = [[] for _ in self.arms]
-        for leg, (start, goal) in enumerate(zip(waypoints, waypoints[1:])):
-            result = self.environment.plan(
-                planner=settings["planner"], planning_time=settings["planning_time"],
-                shortcut_time=settings["shortcut_time"], seed=settings["seed"],
-                dt=settings["dt"], start=start, goal=goal,
-                write_files=False, write_tpg=False, return_trajectories=True)
-            for index, path in enumerate(result["traj"]):
-                trajectories[index].extend(path)
-            self.get_logger().info(
-                f"leg {leg + 1}/{len(waypoints) - 1}: {result['planner_time_sec']:.2f} s, "
-                f"{len(result['traj'][0])} steps")
-
-        self.get_logger().info(
-            f"{len(trajectories[0])} steps total, "
-            f"collision-free: {not self.environment.trajectory_in_collision(trajectories)}")
-        return trajectories
-
-    def publish_obstacles(self):
-        markers = MarkerArray()
-        for index, obstacle in enumerate(self.config["obstacles"]):
-            marker = Marker()
-            marker.header.frame_id = WORLD_FRAME
-            marker.ns, marker.id, marker.type, marker.action = "obstacles", index, Marker.CUBE, Marker.ADD
-            marker.pose.position.x, marker.pose.position.y, marker.pose.position.z = obstacle["xyz"]
-            marker.pose.orientation.w = 1.0
-            marker.scale.x, marker.scale.y, marker.scale.z = obstacle["size"]
-            marker.color.r, marker.color.g, marker.color.b, marker.color.a = 0.55, 0.42, 0.30, 0.85
-            markers.markers.append(marker)
-        self.create_publisher(MarkerArray, "obstacles", LATCHED).publish(markers)
-
-    def publish_paths(self, trajectories, dt):
-        for arm, path in zip(self.arms, trajectories):
-            message = JointTrajectory()
-            message.joint_names = arm["joints"]
-            for step, configuration in enumerate(path):
-                point = JointTrajectoryPoint()
-                point.positions = list(configuration)
-                point.time_from_start = Duration(seconds=step * dt).to_msg()
-                message.points.append(point)
-            self.create_publisher(JointTrajectory, f"/{arm['name']}/trajectory",
-                                  LATCHED).publish(message)
-
-    def play(self):
-        stamp = self.get_clock().now().to_msg()
-        for arm, publisher, path in zip(self.arms, self.joint_publishers, self.trajectories):
+    def tick(self):
+        last = len(self.paths[0]) - 1
+        index = self.step % len(self.paths[0]) if self.loop else min(self.step, last)
+        stamp = self.node.get_clock().now().to_msg()
+        for arm, publisher, path in zip(self.arms, self.publishers, self.paths):
             message = JointState()
             message.header.stamp = stamp
             message.name = arm["joints"]
-            message.position = list(path[self.step % len(path)])
+            message.position = [float(value) for value in path[index][:len(arm["joints"])]]
             publisher.publish(message)
         self.step += 1
 
 
+def solve(node, config):
+    environment = world.build(config)
+    source = node.get_parameter("waypoints").value
+    if source:
+        names, waypoints = read_waypoints(source, config["arms"])
+        world.reject_unplannable(environment, config["arms"], names, waypoints)
+    else:
+        names, waypoints = world.solve_routine(environment, config)
+    node.get_logger().info(f"{len(waypoints)} waypoints: {' -> '.join(names)}")
+
+    paths, times, legs = world.plan_legs(environment, names, waypoints, config["planning"])
+    for label, seconds, steps, makespan in legs:
+        node.get_logger().info(f"{label}: planned in {seconds * 1000:.0f} ms, {steps} steps, {makespan:.2f} s")
+    node.get_logger().info(
+        f"{len(paths[0])} steps, {times[-1]:.2f} s, "
+        f"collision-free: {not environment.trajectory_in_collision(paths)}")
+    return paths, times
+
+
 def main():
     rclpy.init()
-    node = Plan()
+    node = Node("plan")
+    node.declare_parameter("config", "")
+    node.declare_parameter("waypoints", "")
+    config = load_config(node.get_parameter("config").value)
+    publish_scene(node, config)
+
+    try:
+        paths, times = solve(node, config)
+    except world.Invalid as error:
+        node.get_logger().error(str(error))
+        node.destroy_node()
+        rclpy.shutdown()
+        return 1
+
+    publish_trajectories(node, config["arms"], paths, times)
+    Replay(node, config["arms"], paths, config["replay"],
+           config["planning"]["dt"] / config["replay"]["rate"])
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
+    return 0
 
 
 if __name__ == "__main__":

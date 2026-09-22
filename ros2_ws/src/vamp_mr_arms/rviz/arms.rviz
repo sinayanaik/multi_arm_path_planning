@@ -71,7 +71,7 @@ Visualization Manager:
         Inertia: false
         Mass: false
     - Class: rviz_default_plugins/MarkerArray
-      Name: Obstacles
+      Name: Scene
       Enabled: true
       Namespaces: {}
       Topic:
@@ -79,7 +79,7 @@ Visualization Manager:
         Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /obstacles
+        Value: /scene
     - Class: rviz_default_plugins/TF
       Name: TF
       Enabled: false
@@ -105,10 +105,10 @@ Visualization Manager:
     Current:
       Class: rviz_default_plugins/Orbit
       Name: Current View
-      Distance: 3.2
-      Focal Point: {X: 0, Y: 0, Z: 1.05}
-      Pitch: 0.35
-      Yaw: 0.9
+      Distance: 3.4
+      Focal Point: {X: 0, Y: 0.0, Z: 1.0}
+      Pitch: 0.45
+      Yaw: -1.45
       Near Clip Distance: 0.01
       Target Frame: <Fixed Frame>
       Invert Z Axis: false

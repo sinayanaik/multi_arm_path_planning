@@ -1,4 +1,4 @@
-"""Spawn both arms and replay the VAMP-MR plan through the recorded waypoints."""
+"""Spawn both arms in the cell and replay the VAMP-MR plan."""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -16,6 +16,7 @@ def generate_launch_description():
                 output="screen", parameters=[{"waypoints": waypoints}])
 
     return LaunchDescription(
-        [DeclareLaunchArgument("waypoints", default_value="waypoints.csv",
-                               description="waypoint CSV written by the teach toolbar")]
+        [DeclareLaunchArgument(
+            "waypoints", default_value="",
+            description="waypoint CSV from the teach toolbar; empty plans the routine in arms.yaml")]
         + display_nodes(config) + [rviz_node(), plan])
