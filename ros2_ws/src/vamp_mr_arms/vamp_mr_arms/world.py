@@ -57,10 +57,6 @@ def build(config):
         environment.set_robot_base_transform(index, base_matrix(arm["base"]))
     for entry in config["scene"]:
         environment.add_object(collision_box(entry))
-    # The gripper isn't part of this cell's display or intended motion (see GRIPPER_LINKS);
-    # stop it colliding with scene objects. This does not, and cannot without patching VAMP's
-    # own installed headers, cover gripper self-collision or gripper-vs-other-arm checks --
-    # those are baked into generated code outside this repo.
     for link in GRIPPER_LINKS:
         environment.set_allowed_collision("*", link, True)
     return environment

@@ -68,10 +68,10 @@ planning:
   planner: composite_rrt      # composite_rrt | cbs_prm | priority_sipp_rrt
   planning_time: 10.0         # s, per leg
   shortcut_time: 0.1          # s, per leg
-  vmax: 2.5                   # rad/s
-  dt: 0.1                     # s between trajectory samples
-  seed: 1
-  roadmap_samples: 500        # cbs_prm only
+  vmax: 1.0                   # rad/s
+  dt: 0.001                     # s between trajectory samples
+  seed: 3
+  roadmap_samples: 1500        # cbs_prm only
   roadmap_max_dist: 2.0       # cbs_prm only
 
 replay:

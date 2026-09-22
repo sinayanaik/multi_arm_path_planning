@@ -14,19 +14,11 @@ SCENE_TOPIC = "/scene"
 COLLISION_SPHERES_TOPIC = "/collision_spheres"
 LATCHED = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
 
-# What the collision backend actually checks, drawn over the (possibly bare) display mesh --
-# e.g. the gripper VAMP models that ur_description's URDF doesn't include. Translucent and
-# colors nothing else in the scene uses, so it reads as an overlay, not part of the cell.
-# Gripper spheres get their own color: world.build() allow-lists them against scene objects
-# (so they can safely overlap a bin without being flagged there), but self-collision and
-# arm-vs-arm checks still see them -- they're not hidden just because they're excluded from
-# one of the three checks.
 COLLISION_SPHERE_COLOR = (1.0, 0.25, 0.05)
 GRIPPER_SPHERE_COLOR = (0.95, 0.85, 0.10)
 COLLISION_SPHERE_ALPHA = 0.35
 
-# VAMP's UR5 model stands on a pedestal and is yawed; the arms from ur_description are
-# not. Adding it here keeps the URDFs untouched and matches what the planner sees.
+
 PEDESTAL_Z = 0.9144
 PEDESTAL_YAW = 1.57
 
@@ -75,8 +67,6 @@ def box_marker(entry, marker_id):
 
 
 def bin_markers(entry, first_id):
-    # The collision box the planner uses stays a single solid volume (world.py); this is
-    # the open-top container drawn in its place so it reads as a bin, not a crate.
     length, width, height = entry["size"]
     cx, cy, cz = entry["xyz"]
     bottom = cz - height / 2.0

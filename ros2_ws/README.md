@@ -134,6 +134,47 @@ collision model would need `foam` + `cricket` codegen; see `IMPLEMENTATION.md`.
 | `src/ur_description/` | vendored Universal Robots descriptions, unmodified |
 | `tools/` | `make_env.sh` and the one script it drives |
 
+## Nodes
+
+Both launch files start the same display stack, then add their own mode-specific
+nodes. "Both" = launched by both `teach.launch.py` and `plan.launch.py`.
+
+**Launched by both** (via `arms.py: display_nodes()` + `rviz_node()`), one pair
+per arm plus one shared viewer:
+
+| Node | Package / executable | Namespace | Input | Output |
+|---|---|---|---|---|
+| `robot_state_publisher` | `robot_state_publisher` | `/<arm>` | `robot_description` parameter (a URDF string built by `Command(["xacro ", ur.urdf.xacro, "ur_type:=", arm["ur_type"], "name:=", arm["name"]])` from the vendored `ur_description`); subscribes `/<arm>/joint_states` | publishes `/tf` (one dynamic transform per non-fixed joint) and the latched `/<arm>/robot_description` |
+| `<arm>_base` (a `tf2_ros static_transform_publisher`) | `tf2_ros` | — | command-line xyz/rpy args, computed in `arms.py: display_nodes()` from `arms.yaml`'s `arms[].base` plus the fixed `PEDESTAL_Z`/`PEDESTAL_YAW` constants | publishes one `/tf_static` transform, `world` → `<arm>/world` |
+| `rviz2` | `rviz2` | — | `-d src/vamp_mr_arms/rviz/arms.rviz`; that config's Displays subscribe to `/<arm>/robot_description` (×2, RobotModel), TF, `/scene`, `/collision_spheres` | the 3D view; no topics out |
+
+**`teach.launch.py` also starts** (`vamp_mr_arms/vamp_mr_arms/teach.py`):
+
+| Node | Input | Output |
+|---|---|---|
+| `<arm>/joint_state_publisher_gui` (×2, package `joint_state_publisher_gui`) | reads `/<arm>/robot_description` once to learn joint names and slider ranges | publishes `/<arm>/joint_states` every time you drag a slider — this is **live user input**, not planner output |
+| `teach` | parameters `config` (arms.yaml override), `output` (waypoint CSV path), `meshcat`/`meshcat_host`/`meshcat_port`; subscribes `/<arm>/joint_states` ×2; looks up `world → <arm>/<ee_frame>` on the TF tree for the pose readout | publishes `/scene` once (latched) and `/collision_spheres` every GUI tick (~20 Hz, needs `mr_planner_core`'s `robot_spheres` — see below); opens the Tkinter toolbar; writes the waypoint CSV when you click **Save CSV**; if `meshcat:=true`, also streams raw JSON over a plain TCP socket to a separately-run `meshcat_bridge.py` (not a ROS topic) |
+
+`teach` is one process doing two jobs at once: an `rclpy.Node` spun on a
+background thread, and a Tkinter `Toolbar` window run on the main thread's
+`mainloop()` (`teach.py: main()`) — the 50 ms `Toolbar.tick()` is what drives
+every one of `teach`'s outputs above, not a ROS timer or callback.
+
+**`plan.launch.py` also starts** (`vamp_mr_arms/vamp_mr_arms/plan.py`):
+
+| Node | Input | Output |
+|---|---|---|
+| `plan` | parameters `config`, `waypoints` (empty = plan `arms.yaml`'s `routine`; a path = read that CSV's `<arm>_<joint>_rad` columns instead, `read_waypoints()`) | publishes `/scene` once (latched); plans with `world.plan_legs()`, then publishes `/<arm>/trajectory` once (latched, the full path) via `publish_trajectories()`; then a `Replay` object (a ROS timer at `planning.dt / replay.rate` seconds) streams that same path onto `/<arm>/joint_states`, looping if `replay.loop`; logs waypoint list, per-leg planning stats, and the final `trajectory_in_collision` check to stdout |
+
+**The one thing to hold onto:** `/<arm>/joint_states` is published by a
+*different* node depending on which launch file is running, and the data flows
+in opposite directions — `teach.launch.py`'s `joint_state_publisher_gui` turns
+your slider drags *into* that topic (you are the source); `plan.launch.py`'s
+`plan` node turns a *planned* trajectory *into* that same topic on a timer (the
+planner is the source). Either way, `robot_state_publisher` just consumes
+whatever shows up there and turns it into TF for RViz to draw — it has no idea
+whether the joints came from a human or a plan.
+
 ## Teaching your own waypoints
 
 ```bash
@@ -243,13 +284,15 @@ Measured effect of the two you are most likely to touch: `vmax: 2.5` → 4.92 s 
 
 ## Topics
 
-| Topic | Type | Notes |
-|---|---|---|
-| `/scene` | `MarkerArray` | latched, one cube per `scene` + `display_only` entry |
-| `/collision_spheres` | `MarkerArray` | `teach` only, one sphere per collision sphere per arm (gripper spheres in yellow), needs `mr_planner_core`'s `robot_spheres` installed |
-| `/<arm>/joint_states` | `JointState` | the replay, at `dt / rate` (10 Hz by default) |
-| `/<arm>/trajectory` | `JointTrajectory` | latched, published once, `time_from_start` straight from the planner |
-| `/<arm>/robot_description` | `String` | from the unmodified `ur.urdf.xacro` |
+| Topic | Type | Publisher | Subscriber(s) | Notes |
+|---|---|---|---|---|
+| `/scene` | `MarkerArray` | `teach` or `plan` (`arms.py: publish_scene`) | `rviz2` | latched, one cube per `scene` + `display_only` entry, published once at startup |
+| `/collision_spheres` | `MarkerArray` | `teach` only | `rviz2` | not latched, republished every GUI tick (~20 Hz); one sphere per collision sphere per arm (gripper spheres in yellow); needs `mr_planner_core`'s `robot_spheres` installed, else skipped with one logged warning |
+| `/<arm>/joint_states` | `JointState` | **teach mode:** `<arm>/joint_state_publisher_gui`, on every slider move. **plan mode:** `plan`'s `Replay`, on a timer at `planning.dt / replay.rate` (10 Hz by default), looping if `replay.loop` | `<arm>/robot_state_publisher` (always); `teach` itself, teach mode only | same topic, opposite direction depending on which launch file is running — see "Nodes" above |
+| `/<arm>/trajectory` | `JointTrajectory` | `plan` only (`publish_trajectories`) | none in this workspace (informational, for external consumers) | latched, published once after planning, `time_from_start` straight from the planner |
+| `/<arm>/robot_description` | `String` | `<arm>/robot_state_publisher` | `rviz2`; `<arm>/joint_state_publisher_gui` (teach mode only, to learn joint names/limits) | latched; built from the unmodified `ur_description` `ur.urdf.xacro`, not from any file this repo edits |
+| `/tf` | `tf2_msgs/TFMessage` | `<arm>/robot_state_publisher` ×2 | `rviz2`; `teach`'s TF listener (for the `tool0` pose readout) | standard dynamic transforms, one per non-fixed joint |
+| `/tf_static` | `tf2_msgs/TFMessage` | `<arm>_base` static_transform_publisher ×2 | `rviz2`; `teach`'s TF listener | the fixed `world` → `<arm>/world` mount transform each arm's TF tree hangs off of |
 
 ## Changing things
 
