@@ -1,0 +1,657 @@
+<?xml version="1.0" ?>
+<robot name="ur5e_2f85">
+  <link name="base_link">
+    <collision>
+      <origin xyz="0 0 0.024" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0803243425"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.076" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0803243425"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="shoulder_link">
+    <collision>
+      <origin xyz="0 0 -0.1" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0670820393"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 -0.04" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0670820393"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.02" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0670820393"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="shoulder_pan_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="shoulder_link"/>
+    <origin xyz="0 0 0.163" rpy="0 -0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159265" upper="3.14159265" effort="150" velocity="3.14159265"/>
+  </joint>
+  <link name="upper_arm_link">
+    <collision>
+      <origin xyz="0 0.02 -1.33226763e-17" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0670820393"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.04 0" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0670820393"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.1 1.33226763e-17" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0670820393"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.05" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.15" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.2" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.25" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.3" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.35" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.4" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0559016994"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="shoulder_lift_joint" type="revolute">
+    <parent link="shoulder_link"/>
+    <child link="upper_arm_link"/>
+    <origin xyz="0 0.138 0" rpy="0 1.57079633 -0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159265" upper="3.14159265" effort="150" velocity="3.14159265"/>
+  </joint>
+  <link name="forearm_link">
+    <collision>
+      <origin xyz="0 0.14 -1.33226763e-17" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0585234996"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.1 -4.4408921e-18" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0585234996"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.06 4.4408921e-18" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0585234996"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.02 1.33226763e-17" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0585234996"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.01" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.048" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.086" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.124" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.162" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.2" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.238" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.276" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.314" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.352" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.39" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0424852916"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="elbow_joint" type="revolute">
+    <parent link="upper_arm_link"/>
+    <child link="forearm_link"/>
+    <origin xyz="0 -0.131 0.425" rpy="0 -0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159265" upper="3.14159265" effort="150" velocity="3.14159265"/>
+  </joint>
+  <link name="wrist_1_link">
+    <collision>
+      <origin xyz="0 0.12 -1.55431223e-17" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.043660623"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.085 -7.77156117e-18" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.043660623"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.05 0" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.043660623"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.015 7.77156117e-18" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.043660623"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.02 1.55431223e-17" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.043660623"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="wrist_1_joint" type="revolute">
+    <parent link="forearm_link"/>
+    <child link="wrist_1_link"/>
+    <origin xyz="0 0 0.392" rpy="0 1.57079633 -0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159265" upper="3.14159265" effort="28" velocity="3.14159265"/>
+  </joint>
+  <link name="wrist_2_link">
+    <collision>
+      <origin xyz="0 0 -0.02" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.02" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.06" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.06 0.1" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.02 0.1" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.02 0.1" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="wrist_2_joint" type="revolute">
+    <parent link="wrist_1_link"/>
+    <child link="wrist_2_link"/>
+    <origin xyz="0 0.127 0" rpy="0 -0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159265" upper="3.14159265" effort="28" velocity="3.14159265"/>
+  </joint>
+  <link name="wrist_3_link">
+    <collision>
+      <origin xyz="0 0.1 -4.4408921e-18" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.06 4.4408921e-18" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0447213595"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="wrist_3_joint" type="revolute">
+    <parent link="wrist_2_link"/>
+    <child link="wrist_3_link"/>
+    <origin xyz="0 0 0.1" rpy="0 -0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159265" upper="3.14159265" effort="28" velocity="3.14159265"/>
+  </joint>
+  <link name="gripper_base_mount">
+    <collision>
+      <origin xyz="-0.0182576027 3.75063304e-05 -0.000419022015" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.042379916"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0247099926 4.06451516e-05 0.000556405704" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0454276426"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_base_mount_fixed_joint" type="fixed">
+    <parent link="wrist_3_link"/>
+    <child link="gripper_base_mount"/>
+    <origin xyz="0 0.1 0" rpy="-1.57079633 -0 0"/>
+  </joint>
+  <link name="gripper_base">
+    <collision>
+      <origin xyz="-0.000260641102 -0.00152981808 0.00166628197" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0460458654"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="1.37435965e-06 7.35190705e-07 0.0418191688" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0453660175"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="3.96327169e-05 7.79829423e-05 0.0870116147" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0506145243"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_base_fixed_joint" type="fixed">
+    <parent link="gripper_base_mount"/>
+    <child link="gripper_base"/>
+    <origin xyz="0 0 0.0038" rpy="0 0 -1.57079633"/>
+  </joint>
+  <link name="gripper_right_driver">
+    <collision>
+      <origin xyz="-4.97512438e-07 0.021271351 0.000488986073" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0292965176"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_right_driver_fixed_joint" type="fixed">
+    <parent link="gripper_base"/>
+    <child link="gripper_right_driver"/>
+    <origin xyz="0 0.0306011 0.054904" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_right_spring_link">
+    <collision>
+      <origin xyz="1.6655005e-05 0.0089603144 0.00990817383" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0274891954"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-8.49908875e-06 0.0339834466 0.040143544" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0338021818"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_right_spring_link_fixed_joint" type="fixed">
+    <parent link="gripper_base"/>
+    <child link="gripper_right_spring_link"/>
+    <origin xyz="0 0.0132 0.0609" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_left_driver">
+    <collision>
+      <origin xyz="-4.97512438e-07 0.021271351 0.000488986073" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0292965176"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_left_driver_fixed_joint" type="fixed">
+    <parent link="gripper_base"/>
+    <child link="gripper_left_driver"/>
+    <origin xyz="0 -0.0306011 0.054904" rpy="0 -0 3.14159265"/>
+  </joint>
+  <link name="gripper_left_spring_link">
+    <collision>
+      <origin xyz="1.6655005e-05 0.0089603144 0.00990817383" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0274891954"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-8.49908875e-06 0.0339834466 0.040143544" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0338021818"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_left_spring_link_fixed_joint" type="fixed">
+    <parent link="gripper_base"/>
+    <child link="gripper_left_spring_link"/>
+    <origin xyz="0 -0.0132 0.0609" rpy="0 -0 3.14159265"/>
+  </joint>
+  <link name="gripper_right_coupler">
+    <collision>
+      <origin xyz="8.02594147e-06 9.09569058e-05 0.00051036591" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0268356325"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-2.62181564e-06 0.00603745869 0.0467773732" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0269730599"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_right_coupler_fixed_joint" type="fixed">
+    <parent link="gripper_right_driver"/>
+    <child link="gripper_right_coupler"/>
+    <origin xyz="0 0.0315 -0.0041" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_right_follower">
+    <collision>
+      <origin xyz="-1.20706108e-05 -0.00879325785 0.00410523277" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0191313027"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="4.56710624e-06 -0.0150431565 0.030767154" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.015905614"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_right_follower_fixed_joint" type="fixed">
+    <parent link="gripper_right_spring_link"/>
+    <child link="gripper_right_follower"/>
+    <origin xyz="0 0.055 0.0375" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_left_coupler">
+    <collision>
+      <origin xyz="8.02594147e-06 9.09569058e-05 0.00051036591" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0268356325"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-2.62181564e-06 0.00603745869 0.0467773732" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0269730599"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_left_coupler_fixed_joint" type="fixed">
+    <parent link="gripper_left_driver"/>
+    <child link="gripper_left_coupler"/>
+    <origin xyz="0 0.0315 -0.0041" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_left_follower">
+    <collision>
+      <origin xyz="-1.20706108e-05 -0.00879325785 0.00410523277" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0191313027"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="4.56710624e-06 -0.0150431565 0.030767154" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.015905614"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_left_follower_fixed_joint" type="fixed">
+    <parent link="gripper_left_spring_link"/>
+    <child link="gripper_left_follower"/>
+    <origin xyz="0 0.055 0.0375" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_right_pad">
+    <collision>
+      <origin xyz="0 -0.0026 0.028125" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0149973537"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0026 0.009375" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0149973537"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_right_pad_fixed_joint" type="fixed">
+    <parent link="gripper_right_follower"/>
+    <child link="gripper_right_pad"/>
+    <origin xyz="0 -0.0189 0.01352" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_left_pad">
+    <collision>
+      <origin xyz="0 -0.0026 0.028125" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0149973537"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.0026 0.009375" rpy="0 -0 0"/>
+      <geometry>
+        <sphere radius="0.0149973537"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_left_pad_fixed_joint" type="fixed">
+    <parent link="gripper_left_follower"/>
+    <child link="gripper_left_pad"/>
+    <origin xyz="0 -0.0189 0.01352" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_right_silicone_pad">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_right_silicone_pad_fixed_joint" type="fixed">
+    <parent link="gripper_right_pad"/>
+    <child link="gripper_right_silicone_pad"/>
+    <origin xyz="0 0 0" rpy="0 -0 0"/>
+  </joint>
+  <link name="gripper_left_silicone_pad">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="gripper_left_silicone_pad_fixed_joint" type="fixed">
+    <parent link="gripper_left_pad"/>
+    <child link="gripper_left_silicone_pad"/>
+    <origin xyz="0 0 0" rpy="0 -0 0"/>
+  </joint>
+  <link name="tcp"/>
+  <joint name="tcp_fixed_joint" type="fixed">
+    <parent link="gripper_base"/>
+    <child link="tcp"/>
+    <origin xyz="0 0 0.145" rpy="0 -0 0"/>
+  </joint>
+</robot>

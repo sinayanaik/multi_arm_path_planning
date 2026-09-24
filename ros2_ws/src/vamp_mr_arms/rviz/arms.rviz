@@ -23,7 +23,7 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Offset: {X: 0, Y: 0, Z: 0}
     - Class: rviz_default_plugins/RobotModel
-      Name: UR5
+      Name: Left arm
       Enabled: true
       Alpha: 1
       Collision Enabled: false
@@ -35,8 +35,8 @@ Visualization Manager:
         Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /ur5/robot_description
-      TF Prefix: ur5
+        Value: /left/robot_description
+      TF Prefix: left
       Links:
         All Links Enabled: true
         Expand Joint Details: false
@@ -47,7 +47,7 @@ Visualization Manager:
         Inertia: false
         Mass: false
     - Class: rviz_default_plugins/RobotModel
-      Name: UR7e
+      Name: Right arm
       Enabled: true
       Alpha: 1
       Collision Enabled: false
@@ -59,8 +59,8 @@ Visualization Manager:
         Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /ur7e/robot_description
-      TF Prefix: ur7e
+        Value: /right/robot_description
+      TF Prefix: right
       Links:
         All Links Enabled: true
         Expand Joint Details: false

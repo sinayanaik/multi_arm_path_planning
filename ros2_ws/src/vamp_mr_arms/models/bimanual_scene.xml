@@ -1,0 +1,272 @@
+<mujoco model="ur5e scene - two robots">
+
+  <!-- Must match ur5e.xml's own <option integrator="implicitfast"/>.
+       <attach>'s default conflict policy keeps the PARENT's value when
+       parent and child disagree on a global setting - so if this isn't
+       set here, the child's implicitfast is silently dropped in favor of
+       the unauthored default (Euler), which the arm's PD gains weren't
+       tuned for. -->
+       
+  <option integrator="implicitfast"/>
+
+  <!-- Load ur5e.xml once as a named model asset (not via <include>, which
+       can only be used once per file). All of ur5e.xml's own assets
+       (meshes, materials) are copied in automatically. -->
+  <asset>
+    <model name="ur5e_model" file="ur5e.xml"/>
+    <material name="black" rgba="0.033 0.033 0.033 1" />
+    <material name="white" rgba="0.9 0.9 0.9 1" />
+    <material name="green" rgba="0.0 0.5 0.0 1" />
+    
+    <mesh name="robot_base" file="scene_meshes/robot_base.obj" />
+    <mesh name="table" file="scene_meshes/table.obj" />
+    <mesh name="conveyer" file="scene_meshes/conveyer.obj" />
+  </asset>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="120" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <body name="robot_base" pos = "0 0 0" quat="1 0 0 0">
+    	<geom mesh="robot_base" material="black" type="mesh" />
+
+      <body name="left_ur5e_origin" pos="0.22 0.248 0.8637">
+        <attach model="ur5e_model" body="ur5e_base" prefix="left_"/>
+      </body>
+
+      <body name="right_ur5e_origin" pos="-0.26 0.248 0.8637">
+        <attach model="ur5e_model" body="ur5e_base" prefix="right_"/>
+      </body>
+    </body>
+
+    <body name="table" pos="0 1.1 0.375">
+      <!-- Visual mesh: rendering only, no collision -->
+      <geom mesh="table" material="white" type="mesh" contype="0" conaffinity="0"/>
+
+      <!-- Collision primitive: flat, stable contact surface -->
+      <geom name="table_collision" type="box" size="0.30 0.675 0.375" pos="0 0 0"
+            rgba="1 0 0 0.3" contype="1" conaffinity="1" quat="0.7071068 0 0 0.7071068"/>
+    </body>
+
+    <body name="left_bin" pos="0.2 1.0 0.8" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <!-- Floor -->
+      <geom name="left_bin_floor" type="box" size="0.15 0.20 0.01" pos="0 0 0.01"
+            rgba="0.6 0.4 0.2 1"/>
+
+      <!-- Front & back walls (thin in Y, run along X) -->
+      <geom name="left_bin_wall_front" type="box" size="0.15 0.005 0.03" pos="0 0.195 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+      <geom name="left_bin_wall_back"  type="box" size="0.15 0.005 0.03" pos="0 -0.195 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+
+      <!-- Left & right walls (thin in X, run along Y, full breadth) -->
+      <geom name="left_bin_wall_left"  type="box" size="0.005 0.20 0.03" pos="0.145 0 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+      <geom name="left_bin_wall_right" type="box" size="0.005 0.20 0.03" pos="-0.145 0 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+    </body>
+
+    <body name="right_bin" pos="-0.3 1.0 0.8" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <!-- Floor -->
+      <geom name="right_bin_floor" type="box" size="0.15 0.20 0.01" pos="0 0 0.01"
+            rgba="0.6 0.4 0.2 1"/>
+
+      <!-- Front & back walls (thin in Y, run along X) -->
+      <geom name="right_bin_wall_front" type="box" size="0.15 0.005 0.03" pos="0 0.195 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+      <geom name="right_bin_wall_back"  type="box" size="0.15 0.005 0.03" pos="0 -0.195 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+
+      <!-- Left & right walls (thin in X, run along Y, full breadth) -->
+      <geom name="right_bin_wall_left"  type="box" size="0.005 0.20 0.03" pos="0.145 0 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+      <geom name="right_bin_wall_right" type="box" size="0.005 0.20 0.03" pos="-0.145 0 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+    </body>
+
+    <body name="conveyor_bin" pos="0.0 0.58 0.9" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <!-- Floor -->
+      <geom name="conveyor_bin_floor" type="box" size="0.15 0.20 0.01" pos="0 0 0.01"
+            rgba="0.6 0.4 0.2 1"/>
+
+      <!-- Front & back walls (thin in Y, run along X) -->
+      <geom name="conveyor_bin_wall_front" type="box" size="0.15 0.005 0.03" pos="0 0.195 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+      <geom name="conveyor_bin_wall_back"  type="box" size="0.15 0.005 0.03" pos="0 -0.195 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+
+      <!-- Left & right walls (thin in X, run along Y, full breadth) -->
+      <geom name="conveyor_bin_wall_left"  type="box" size="0.005 0.20 0.03" pos="0.145 0 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+      <geom name="conveyor_bin_wall_right" type="box" size="0.005 0.20 0.03" pos="-0.145 0 0.05"
+            rgba="0.6 0.4 0.2 1"/>
+    </body>
+
+    <body name="conveyer" pos="0 0.58 0.60">
+      <geom mesh="conveyer" material="white" type="mesh" />
+    </body>
+
+    <body name="green_mat" pos="0 0.58 0.60">
+      <geom name="greenmat_collision" type="box" size="0.9 0.18 0.005" pos="0 0 0.1"
+            rgba="0.1 0.8 0.1 0.2" contype="1" conaffinity="1" quat="1 0 0 0"/>
+    </body>
+
+    <!-- ===================== LEFT BIN FILL (15 blocks, 9x5x3 cm) ===================== -->
+    <body name="left_block_1" pos="0.30 0.89 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_1_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_2" pos="0.30 0.945 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_2_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_3" pos="0.30 1.0 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_3_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_4" pos="0.30 1.055 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_4_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_5" pos="0.30 1.11 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_5_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+
+    <body name="left_block_6" pos="0.20 0.89 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_6_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_7" pos="0.20 0.945 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_7_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_8" pos="0.20 1.0 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_8_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_9" pos="0.20 1.055 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_9_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_10" pos="0.20 1.11 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_10_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+
+    <body name="left_block_11" pos="0.10 0.89 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_11_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_12" pos="0.10 0.945 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_12_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_13" pos="0.10 1.0 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_13_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_14" pos="0.10 1.055 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_14_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+    <body name="left_block_15" pos="0.10 1.11 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="left_block_15_geom" type="box" size="0.025 0.045 0.015" rgba="0.8 0.5 0.2 1"/>
+    </body>
+
+    <!-- ===================== RIGHT BIN FILL (15 blocks, 9x5x3 cm) ===================== -->
+    <body name="right_block_1" pos="-0.20 0.89 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_1_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_2" pos="-0.20 0.945 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_2_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_3" pos="-0.20 1.0 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_3_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_4" pos="-0.20 1.055 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_4_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_5" pos="-0.20 1.11 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_5_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+
+    <body name="right_block_6" pos="-0.30 0.89 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_6_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_7" pos="-0.30 0.945 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_7_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_8" pos="-0.30 1.0 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_8_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_9" pos="-0.30 1.055 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_9_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_10" pos="-0.30 1.11 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_10_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+
+    <body name="right_block_11" pos="-0.40 0.89 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_11_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_12" pos="-0.40 0.945 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_12_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_13" pos="-0.40 1.0 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_13_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_14" pos="-0.40 1.055 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_14_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    <body name="right_block_15" pos="-0.40 1.11 0.84" quat="0.7071068 0 0 0.7071068">
+      <freejoint/>
+      <geom name="right_block_15_geom" type="box" size="0.025 0.045 0.015" rgba="0.2 0.5 0.8 1"/>
+    </body>
+    
+    
+<!--
+    <body name="red_cube" pos="0.4 0.6 0">
+      <freejoint/>
+      <geom name="red_box" type="box" size="0.025 0.025 0.025" pos="0 0 0.025" rgba="1 0 0 1"/>
+    </body>
+
+    <body name="blue_cube" pos="-0.4 0.6 0">
+      <freejoint/>
+      <geom name="blue_box" type="box" size="0.025 0.025 0.025" pos="0 0 0.025" rgba="0 0 1 1"/>
+    </body>
+     -->
+  </worldbody>
+
+</mujoco>

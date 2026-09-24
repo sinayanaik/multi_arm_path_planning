@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Write the environment JSON mr_planner_core loads, taking the arm names and base
-transforms straight from arms.yaml so ROS and the planner cannot drift apart."""
+transforms straight from cell.yaml -- the same file the ROS nodes read, itself generated
+from the MuJoCo scene -- so ROS and the planner cannot drift apart."""
 
 import argparse
 import json
@@ -11,12 +12,12 @@ import yaml
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", required=True)
+    parser.add_argument("--cell", required=True, help="config/cell.yaml")
     parser.add_argument("--output", required=True)
     parser.add_argument("--plugin", required=True)
     args = parser.parse_args()
 
-    arms = yaml.safe_load(Path(args.config).read_text())["arms"]
+    arms = yaml.safe_load(Path(args.cell).read_text())["arms"]
     Path(args.output).write_text(json.dumps({
         "name": Path(args.output).stem,
         "move_group": "both_arms",

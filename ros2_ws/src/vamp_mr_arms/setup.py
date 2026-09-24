@@ -1,8 +1,19 @@
+import os
 from glob import glob
 
 from setuptools import setup
 
 package_name = "vamp_mr_arms"
+
+
+def model_files():
+    """models/ verbatim, meshes included -- the URDFs reference them by package:// path."""
+    out = []
+    for directory, _subdirs, names in os.walk("models"):
+        if names:
+            out.append((f"share/{package_name}/{directory}",
+                        [os.path.join(directory, name) for name in names]))
+    return out
 
 setup(
     name=package_name,
@@ -15,12 +26,12 @@ setup(
         (f"share/{package_name}/config", glob("config/*.yaml")),
         (f"share/{package_name}/rviz", glob("rviz/*.rviz")),
         (f"share/{package_name}/vamp_env", glob("vamp_env/*")),
-    ],
+    ] + model_files(),
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="Sinaya Naik",
     maintainer_email="sinayanaik@gmail.com",
-    description="Spawn, hand-teach and VAMP-MR plan a UR5 and a UR7e in RViz.",
+    description="Spawn, hand-teach and VAMP-MR plan two UR5e arms in RViz.",
     license="Apache-2.0",
     entry_points={
         "console_scripts": [

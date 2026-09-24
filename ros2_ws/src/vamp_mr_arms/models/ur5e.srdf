@@ -1,0 +1,171 @@
+<?xml version="1.0" ?>
+<robot name="ur5e_2f85">
+  <group name="manipulator">
+    <chain base_link="base_link" tip_link="tcp"/>
+  </group>
+  <disable_collisions link1="base_link" link2="gripper_left_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="base_link" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="base_link" link2="shoulder_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="base_link" link2="upper_arm_link" reason="Always in collision"/>
+  <disable_collisions link1="forearm_link" link2="gripper_left_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="forearm_link" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="forearm_link" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="forearm_link" link2="upper_arm_link" reason="Adjacent"/>
+  <disable_collisions link1="forearm_link" link2="wrist_1_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base" link2="gripper_base_mount" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base" link2="gripper_left_coupler" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_left_driver" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base" link2="gripper_left_follower" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_left_pad" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_left_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_left_spring_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base" link2="gripper_right_coupler" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_right_driver" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base" link2="gripper_right_follower" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_right_pad" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base" link2="gripper_right_spring_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base" link2="tcp" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base" link2="wrist_2_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base" link2="wrist_3_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_left_coupler" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_left_driver" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_left_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_left_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_left_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_left_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_right_coupler" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_right_driver" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_right_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="gripper_right_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="wrist_2_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_base_mount" link2="wrist_3_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_left_driver" reason="Adjacent"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_left_follower" reason="Excluded in MJCF"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_left_pad" reason="Always in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_left_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_left_spring_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_right_coupler" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_right_driver" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_right_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="gripper_right_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_coupler" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_left_follower" reason="Always in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_left_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_left_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_left_spring_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_right_coupler" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_right_driver" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_right_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="gripper_right_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_driver" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_left_pad" reason="Adjacent"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_left_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_left_spring_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_right_coupler" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_right_driver" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_right_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="gripper_right_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_follower" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_left_silicone_pad" reason="Adjacent"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_left_spring_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_right_coupler" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_right_driver" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_right_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="gripper_right_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_pad" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="gripper_left_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="gripper_right_coupler" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="gripper_right_driver" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="gripper_right_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="gripper_right_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="shoulder_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="upper_arm_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_silicone_pad" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="gripper_right_coupler" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="gripper_right_driver" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="gripper_right_follower" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="gripper_right_spring_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_left_spring_link" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_coupler" link2="gripper_right_driver" reason="Adjacent"/>
+  <disable_collisions link1="gripper_right_coupler" link2="gripper_right_follower" reason="Excluded in MJCF"/>
+  <disable_collisions link1="gripper_right_coupler" link2="gripper_right_pad" reason="Always in collision"/>
+  <disable_collisions link1="gripper_right_coupler" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_coupler" link2="gripper_right_spring_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_right_coupler" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_coupler" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_coupler" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_driver" link2="gripper_right_follower" reason="Always in collision"/>
+  <disable_collisions link1="gripper_right_driver" link2="gripper_right_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_driver" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_driver" link2="gripper_right_spring_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_right_driver" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_driver" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_driver" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_follower" link2="gripper_right_pad" reason="Adjacent"/>
+  <disable_collisions link1="gripper_right_follower" link2="gripper_right_silicone_pad" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_follower" link2="gripper_right_spring_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_right_follower" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_follower" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_follower" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_follower" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_pad" link2="gripper_right_silicone_pad" reason="Adjacent"/>
+  <disable_collisions link1="gripper_right_pad" link2="gripper_right_spring_link" reason="Always in collision"/>
+  <disable_collisions link1="gripper_right_pad" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_pad" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_pad" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_pad" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_silicone_pad" link2="gripper_right_spring_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_silicone_pad" link2="shoulder_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_silicone_pad" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_silicone_pad" link2="upper_arm_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_silicone_pad" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_silicone_pad" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_silicone_pad" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_spring_link" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_spring_link" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_spring_link" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="gripper_right_spring_link" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="shoulder_link" link2="tcp" reason="Never in collision"/>
+  <disable_collisions link1="shoulder_link" link2="upper_arm_link" reason="Adjacent"/>
+  <disable_collisions link1="tcp" link2="upper_arm_link" reason="Never in collision"/>
+  <disable_collisions link1="tcp" link2="wrist_1_link" reason="Never in collision"/>
+  <disable_collisions link1="tcp" link2="wrist_2_link" reason="Never in collision"/>
+  <disable_collisions link1="tcp" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="wrist_1_link" link2="wrist_2_link" reason="Adjacent"/>
+  <disable_collisions link1="wrist_1_link" link2="wrist_3_link" reason="Never in collision"/>
+  <disable_collisions link1="wrist_2_link" link2="wrist_3_link" reason="Adjacent"/>
+</robot>

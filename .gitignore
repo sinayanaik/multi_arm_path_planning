@@ -13,3 +13,6 @@
 __pycache__/
 outputs/
 
+
+# cricket's fkcc_gen, cloned by hand; see ros2_ws/tools/make_env.sh
+cricket/

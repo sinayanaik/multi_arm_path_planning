@@ -122,7 +122,8 @@ class Teach(Node):
                 "pick up the collision-sphere visualization; not publishing /collision_spheres "
                 "until then.")
             return
-        self.collision_spheres_pub.publish(collision_sphere_markers(spheres, world.GRIPPER_LINKS))
+        self.collision_spheres_pub.publish(
+            collision_sphere_markers(spheres, world.GRIPPER_PREFIX))
 
     def record(self, name):
         samples = self.state()

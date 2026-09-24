@@ -1,22 +1,25 @@
 # ROS 2 workspace for VAMP-MR
 
-A two-arm pick-and-place cell: a UR5 and a UR7e mounted side by side on a work table, a
-conveyor in front of them carrying two source bins, and a target box on their own table.
-Both arms sweep from the bins to the box as **one coordinated motion planned by VAMP-MR**,
-and RViz replays exactly the trajectory the planner returned.
+Two UR5e arms with Robotiq 2F85 grippers, bolted to a workbench, reaching into three bins on
+a table and a conveyor. Both arms move as **one coordinated motion planned by VAMP-MR**, and
+RViz replays exactly the trajectory the planner returned.
 
-No URDF is edited anywhere: both arms are displayed straight from the vendored
-`ur_description`. `vamp` is used unmodified from its existing `/usr/local` install.
-`mr_planner_core` gained two small collision-diagnostic bindings
-(`colliding_links` / `colliding_links_robot`, wrapping its existing but previously-unbound
-`PlanInstance::debugCollidingLinks`) in its own repo at
-`/home/tcs-research/Documents/multi_arm_path_planning/mr_planner_core`; after pulling changes
-there, rebuild and reinstall it (`cmake --build build -j && sudo cmake --install build`)
-before this workspace's `collision_reason()` messages will include the colliding link/object
-names.
+Everything about the robot and the cell comes from two MuJoCo files and nothing else:
+
+| File | What it decides |
+|---|---|
+| `src/vamp_mr_arms/models/ur5e.xml` | the robot: link geometry, joint axes, collision shapes, the gripper |
+| `src/vamp_mr_arms/models/bimanual_scene.xml` | the cell: where the arms are bolted, and every obstacle around them |
+
+`tools/make_env.sh` turns those into the URDF RViz draws, the sphere model VAMP checks, the
+obstacle list the planner is given, and the two-arm plugin — so **the robot on screen and the
+robot being collision-checked are generated from the same source in the same run.** They
+cannot drift apart. That was not true before: this workspace used to display
+`ur_description`'s UR5/UR7e while planning against VAMP's precompiled UR5, and the two
+differed by up to 74 mm.
 
 ```bash
-tools/make_env.sh                       # once: build the VAMP plugin + environment JSON
+tools/make_env.sh                       # once: generate the model, the cell and the plugin
 colcon build --symlink-install
 source install/setup.bash
 
@@ -25,290 +28,198 @@ ros2 launch vamp_mr_arms teach.launch.py output:=routine.csv    # jog and record
 ros2 launch vamp_mr_arms plan.launch.py waypoints:=routine.csv  # replay what you recorded
 ```
 
+## One-time setup: cricket
+
+VAMP ships precompiled collision kernels for a handful of robots and a UR5e is not among
+them, so ours is generated. The generator is `fkcc_gen` from
+[CoMMALab/cricket](https://github.com/CoMMALab/cricket), which is not packaged anywhere:
+
+```bash
+sudo apt install libcgal-dev cppad libeigen3-dev nlohmann-json3-dev libfmt-dev \
+                 ros-jazzy-pinocchio
+pip install mujoco                      # tooling only; not a runtime dependency
+
+git clone --recursive https://github.com/CoMMALab/cricket ../cricket
+cd ../cricket
+cmake -GNinja -Bbuild -DCRICKET_BUILD_JIT=OFF .    # JIT off, so no LLVM is needed
+cmake --build build
+```
+
+`make_env.sh` looks for `../cricket/build/fkcc_gen`; set `FKCC_GEN` if yours is elsewhere.
+Without it the script still generates the URDFs and the cell — RViz will draw both arms
+correctly — and stops before the planner's kernel with a message saying so.
+
 ## The cell
+
+All of it is read out of `bimanual_scene.xml`, with the free bodies dropped onto their
+surfaces first, and written to `config/cell.yaml`.
 
 ```
         y
-        ^                     conveyor  belt top 0.78, 1.80 x 0.50,  y = +0.51
-        |        +-------------------------------------------+
-        |        |   [ bin_left ]             [ bin_right ]  |   0.20 x 0.20 x 0.10, lid 0.88
-        |        +-------------------------------------------+
-        |                        y = +0.35
-        |        +-------------------------------------------+
-        |        |               [ target_box ]              |   0.26 x 0.26 x 0.11, rim 0.94
-        |        |                                           |
-        |        |      (ur5)                    (ur7e)      |   bases x = -0.35 / +0.35
-        |        +-------------------------------------------+
-        |               work table  top 0.83, 1.50 x 0.80,  y = -0.25
-        +--------------------------------------------------------> x
+        ^                     work table      top 0.75,  1.35 x 0.60,  y = 1.10
+        |    +---------------------------------------------------+
+        |    |   [ right_bin ]                   [ left_bin ]     |   rims at 0.83
+        |    +---------------------------------------------------+
+        |
+        |            conveyor  belt top 0.705, 1.80 x 0.36,  y = 0.58
+        |    +---------------------------------------------------+
+        |    |                [ conveyor_bin ]                    |
+        |    +---------------------------------------------------+
+        |
+        |    +---------------------------------------------------+
+        |    |      (right)                        (left)         |   bases x = -0.26 / +0.22
+        |    |            workbench  top 0.8635, 1.02 x 0.80      |
+        |    +---------------------------------------------------+
+        +-------------------------------------------------------------> x
 ```
 
-Both arms carry `rpy: [0, 0, 0]`, so they are mounted in the **same orientation** and both
-face the conveyor: `shoulder_pan = 0` points along +y.
+| Feature | Footprint (m) | Top surface (m) |
+|---|---|---|
+| workbench (`robot_base`) | 1.02 x 0.80 | 0.8635 |
+| work table | 1.35 x 0.60 | 0.750 |
+| conveyor frame | 2.00 x 0.60 | 0.700 |
+| conveyor belt | 1.80 x 0.36 | 0.705 |
+| `left_bin` at (+0.20, 1.00) | 0.40 x 0.30 | floor 0.770, rim 0.830 |
+| `right_bin` at (-0.30, 1.00) | 0.40 x 0.30 | floor 0.770, rim 0.830 |
+| `conveyor_bin` at (0.00, 0.58) | 0.40 x 0.30 | floor 0.725, rim 0.785 |
+| blocks, 15 per source bin | 0.09 x 0.05 x 0.03 | 0.800 |
+| arm mounting face | — | 0.8637 |
 
-| Feature | Footprint (m) | Top surface (m) | Centre (m) |
-|---|---|---|---|
-| work table | 1.50 x 0.80 | 0.83 | `(0.00, -0.25)` |
-| conveyor belt | 1.80 x 0.50 | 0.78 | `(0.00, +0.51)` |
-| `bin_left` / `bin_right` | 0.20 x 0.20 | 0.88 | `(-+0.35, +0.35)` |
-| `target_box` | 0.26 x 0.26 | 0.94 | `(0.00, -0.02)` |
-| arm mounting flange | — | 0.9144 | `(-+0.35, -0.25)` |
+Both arms are yawed +90° about Z, so `shoulder_pan = 0` points along **+y**, towards the
+bins. 49 collision boxes go to the planner: the workbench, the table, the conveyor frame and
+belt, all three bins as their real five walls each — so an arm can reach *into* a bin rather
+than bouncing off a solid block — and all 30 blocks.
 
-The conveyor sits off-center from the bins it carries (y = +0.51 vs. their +0.35) so its
-footprint clears the work table's (y = -0.65 to +0.15) rather than overlapping it by ~5 cm.
-VAMP never checks scene objects against each other, so that overlap never affected planning —
-it only ever showed up as the two slabs visibly interpenetrating in RViz.
-
-The routine is `home → over_bins → at_bins → lift → over_target → place → retreat`, written
-in `config/arms.yaml` as one end-effector position per arm per waypoint. Each consecutive
-pair becomes **one two-arm `plan()` query**, so both arms start and finish every leg
-together and VAMP-MR is the only thing deciding how they avoid each other.
-
-Measured on this machine: 7 waypoints, 6 legs, **~110 ms per leg**, 51 samples,
-**4.92 s** of motion, `trajectory_in_collision` → `False`.
+Two of the cell's bodies collide as raw meshes in MuJoCo, and VAMP's obstacle backend takes
+only boxes, spheres and cylinders (`Object::Shape::Mesh` is in the enum, but the backend
+returns `nullopt` for it). Those two become the axis-aligned box of their own vertices:
+exactly right for the workbench, and for the conveyor it also fills the open space under the
+belt, which is conservative and which nothing reaches into. RViz still draws the original
+meshes over the boxes, so the cell looks like itself.
 
 ## What the planner actually sees
 
-VAMP ships exactly one arm model — a UR5 with a Robotiq 85 gripper on a 0.9144 m pedestal —
-so **both arms are planned as that UR5**. Four consequences are worth knowing, because every
-number in `arms.yaml` follows from them.
+**The UR5e it checks is the UR5e on screen.** `tools/check_model.py` runs on every
+`make_env.sh` and asserts it:
+
+```
+kinematics : 200 configurations, worst link disagreement 0.0000 mm
+containment: 35059 points sampled over the MuJoCo collision geometry, 0 outside every sphere
+```
+
+The first line drives random configurations through both MuJoCo's own `mj_forward` and the
+generated URDF and compares every link pose. The second samples the surface of every MJCF
+collision capsule, box and mesh and checks each point falls inside some sphere of the sphere
+model — because a sphere cover that *misses* would report clearance the robot does not have.
+Separately, the live TF tree (`robot_state_publisher` plus the mount transform) agrees with
+the same kinematics to 0.00000 mm in the world frame.
+
+Four things are still worth knowing.
 
 **1. The configuration space is ±π per joint, not ±2π.**
-`/usr/local/include/vamp/robots/ur5.hh` scales the unit cube with `s_m = 2π`, `s_a = -π`. A
-waypoint outside that box cannot be planned even when it is perfectly collision-free, and
-the failure surfaces only as `RuntimeError: Planning failed`. Every joint value entering the
-planner is therefore wrapped into ±π (`world.wrap`), which is a no-op geometrically since a
-revolute joint at `q` and at `q ± 2π` is the same pose. The
-`joint_state_publisher_gui` sliders follow `ur_description`, which allows ±2π — that is why
-wrapping happens on the way in rather than being left to you.
+The MJCF allows ±2π on five of the six joints, but the generated URDF caps every joint at
+±π, so VAMP samples a box the same size it always did. Nothing is unreachable: a revolute
+joint at `q` and at `q ± 2π` is the same pose, and `world.wrap` maps every value entering
+the planner into that box. Widen `JOINT_LIMIT` in `tools/mjcf_to_urdf.py` if you ever want
+the full range, and accept the larger search volume.
 
-**2. The arm stands on a pedestal the URDFs do not have.**
-`base.xyz` in `arms.yaml` is the **foot** of that pedestal; `base_link` ends up 0.9144 m
-above it, yawed 1.57 rad. `arms.py` adds exactly that offset to each arm's static transform,
-so the display lines up with the planner while the URDFs stay untouched. Verified: for the
-same joint values, the world-frame distance between the displayed `tool0` and the planner's
-end-effector is a constant **0.0350 m**, which is precisely the `tool0` →
-`robotiq_85_base_link` offset in VAMP's own `ur5.urdf`.
+**2. The gripper is real now, and is checked.**
+The 2F85 is on screen and collision-checked like any other link — 21 of the model's 69
+spheres are gripper. This replaces the old arrangement, where VAMP's compiled UR5 carried a
+Robotiq 85 that neither displayed arm wore and which therefore had to be allow-listed away
+from every scene object. Its finger joints are fixed at fully open, so the model stays 6-DOF
+and the four-bar linkage (which URDF cannot express) never has to be broken; VAMP's own
+`ur5_spherized.urdf` does exactly the same with its gripper.
 
-**3. The table top cannot go above 0.834 m.**
-The model's base sphere has r = 0.08 centred on `base_link` at z = 0.9144, so its underside
-sits at 0.8344. A top at 0.86 already collides at the tucked pose. The table top is at
-**0.83**, and the 84 mm from there up to the flange is drawn as a `riser` marker — that
-volume is already occupied by the robot's own base sphere, so it must never be handed to the
-planner as an obstacle. `display_only` entries in `arms.yaml` exist for exactly this.
+**3. `base_link` and `shoulder_link` are allowed to touch the workbench.**
+The arms mount 0.2 mm above the workbench top, so they are inside it by construction. Rather
+than truncate the workbench to a height the arm happens to clear — which the old cell did,
+with a `display_only` riser standing in for the missing 84 mm — `world.build()` calls
+`set_allowed_collision("robot_base", link, True)` for those two links and hands the planner
+the workbench's true height. `display_only` still exists in the schema and is now empty.
 
-**4. The gripper is excluded from scene-object collision checks.**
-VAMP's compiled UR5 model permanently includes a Robotiq 85 gripper + FTS300 sensor as ten
-extra links (`fts_robotside` and the nine `robotiq_85_*` links, `GRIPPER_LINKS` in
-`world.py`), on top of the bare arm neither arm on screen is wearing — so a rejected pose
-could name a gripper link colliding with a bin or the conveyor that was nowhere near what
-RViz showed. `world.build()` now calls `environment.set_allowed_collision("*", link, True)`
-for each of those links, so they no longer collide with scene objects. This does **not**
-cover gripper self-collision or gripper-vs-other-arm: those checks are unrolled into VAMP's
-own installed `/usr/local/include/vamp/robots/ur5.hh`, outside this repo, with no filter hook
-— removing them would mean patching that third-party header directly (fragile, and reverts
-on any `vamp` reinstall), so it hasn't been done. In practice this has never been what
-actually triggered a rejection in this cell. The routine's hover heights (`at_bins` 1.06,
-`place` 1.11, vs. bin lid 0.88 / target rim 0.94) were originally sized to clear the now-
-excluded gripper and are more conservative than the bare arm needs — safe to tighten if you
-want the arms to dip further.
-
-Also worth knowing: the plugin reports **7 DOF** per arm (six joints plus the gripper
-finger). A trailing seventh value is accepted and ignored by the collision model, so the
-nodes work in six joints throughout and only pad the IK seed, which is length-checked.
-
-The UR7e's links differ from the UR5's — shoulder 73 mm taller, wrists 5-24 mm longer (upper
-arm identical, forearm within 0.05 mm) — so arm 2's clearance is approximate. A genuine UR7e
-collision model would need `foam` + `cricket` codegen; see `IMPLEMENTATION.md`.
+**4. Sphere approximation makes the base fatter than it is.**
+The UR5e base casting is a squat cylinder, 99 mm tall and 151 mm across. *Any* sphere that
+covers it bulges about 75 mm past its flat top, so `base_link` and `upper_arm_link` register
+as permanently in contact and the SRDF disables that pair. VAMP's own UR5 has the identical
+property for the identical reason (one r = 0.08 sphere on `base_link`). The generated SRDF
+disables 165 of 231 link pairs — 21 adjacent, 2 from the MJCF's own `<contact><exclude>`, 24
+always in contact, 118 never — leaving 66 genuinely checked. Those numbers are stable: 2,000
+samples and 200,000 samples give the same answer.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `src/vamp_mr_arms/config/arms.yaml` | the cell, the routine and every planner parameter |
+| `src/vamp_mr_arms/models/` | the MuJoCo sources, their meshes, and the URDF/SRDF generated from them |
+| `src/vamp_mr_arms/config/cell.yaml` | **generated** — the arms' mounts and all 49 obstacles |
+| `src/vamp_mr_arms/config/arms.yaml` | hand-written — the routine, the IK seed, every planner parameter |
 | `src/vamp_mr_arms/vamp_mr_arms/world.py` | the planner side: environment, wrapping, validity, IK, `plan()` per leg |
 | `src/vamp_mr_arms/vamp_mr_arms/arms.py` | the ROS side: config loading, scene markers, display nodes |
 | `src/vamp_mr_arms/vamp_mr_arms/plan.py` | plan the waypoints, publish the trajectories, replay them |
 | `src/vamp_mr_arms/vamp_mr_arms/teach.py` | jog, watch, and record waypoints the planner can use |
 | `src/vamp_mr_arms/vamp_env/` | generated: the VAMP plugin and the environment JSON |
-| `src/ur_description/` | vendored Universal Robots descriptions, unmodified |
-| `tools/` | `make_env.sh` and the one script it drives |
+| `tools/` | everything that turns MuJoCo into the above |
+
+The config is split deliberately: re-importing the cell cannot overwrite a routine you spent
+an afternoon teaching, and `arms.yaml` never goes stale against the MuJoCo scene because it
+no longer describes it.
+
+### tools/
+
+| Script | Does |
+|---|---|
+| `make_env.sh` | runs all of the below in order |
+| `mjcf.py` | reads MJCF: `<default>` class inheritance, the body tree, geom poses and shapes |
+| `mjcf_to_urdf.py` | writes `ur5e.urdf` (meshes, for RViz) and `ur5e_spherized.urdf` (spheres, for cricket) |
+| `urdf_kin.py` | URDF forward kinematics and sphere placement, with no ROS in the loop |
+| `make_srdf.py` | the allowed-collision matrix, sampled against the spheres |
+| `mjcf_to_scene.py` | settles the cell in MuJoCo and writes `config/cell.yaml` |
+| `check_model.py` | proves the generated model is the MuJoCo model |
+| `check_cell.py` | sanity-checks that the imported cell leaves the arms room to move |
+| `make_env_json.py` | the environment JSON `mr_planner_core` loads |
+
+## How the spheres are derived
+
+They are not fitted or guessed. Every collision shape on the arm is already a capsule in the
+MJCF (a cylinder at the wrist), and a capsule is *by definition* the set of points within `r`
+of a line segment — so a row of spheres along that segment reproduces it. Spaced `d` apart
+with radius `sqrt(r² + (d/2)²)`, the union contains the capsule: a point at radial distance
+≤ `r` and at most `d/2` along the axis from the nearest centre is within that distance of it,
+and the rounded ends are covered by the end spheres at radius `r` alone. `--spacing-factor`
+trades count against inflation (1.0 → 12% fatter, 0.6 → 4%).
+
+Only the gripper needed judgement, because its collision geometry is meshes. Those get
+bounding spheres per slab along the longest axis, with a final pass that grows whichever
+sphere is nearest any point still outside — and then `check_model.py` verifies the result
+against the actual triangles. 69 spheres over 19 links, against VAMP's UR5's 40 over 17.
 
 ## Nodes
 
-Both launch files start the same display stack, then add their own mode-specific
-nodes. "Both" = launched by both `teach.launch.py` and `plan.launch.py`.
+Both launch files start the same display stack, then add their own mode-specific nodes.
 
-**Launched by both** (via `arms.py: display_nodes()` + `rviz_node()`), one pair
-per arm plus one shared viewer:
-
-| Node | Package / executable | Namespace | Input | Output |
+| Node | Package | Namespace | Input | Output |
 |---|---|---|---|---|
-| `robot_state_publisher` | `robot_state_publisher` | `/<arm>` | `robot_description` parameter (a URDF string built by `Command(["xacro ", ur.urdf.xacro, "ur_type:=", arm["ur_type"], "name:=", arm["name"]])` from the vendored `ur_description`); subscribes `/<arm>/joint_states` | publishes `/tf` (one dynamic transform per non-fixed joint) and the latched `/<arm>/robot_description` |
-| `<arm>_base` (a `tf2_ros static_transform_publisher`) | `tf2_ros` | — | command-line xyz/rpy args, computed in `arms.py: display_nodes()` from `arms.yaml`'s `arms[].base` plus the fixed `PEDESTAL_Z`/`PEDESTAL_YAW` constants | publishes one `/tf_static` transform, `world` → `<arm>/world` |
-| `rviz2` | `rviz2` | — | `-d src/vamp_mr_arms/rviz/arms.rviz`; that config's Displays subscribe to `/<arm>/robot_description` (×2, RobotModel), TF, `/scene`, `/collision_spheres` | the 3D view; no topics out |
+| `robot_state_publisher` | `robot_state_publisher` | `/<arm>` | `models/ur5e.urdf`, read off disk; subscribes `/<arm>/joint_states` | `/tf`, and the latched `/<arm>/robot_description` |
+| `<arm>_base` | `tf2_ros static_transform_publisher` | — | `cell.yaml`'s `arms[].base` | one `/tf_static`, `world` → `<arm>/base_link` |
+| `rviz2` | `rviz2` | — | `rviz/arms.rviz` | the 3D view |
 
-**`teach.launch.py` also starts** (`vamp_mr_arms/vamp_mr_arms/teach.py`):
-
-| Node | Input | Output |
-|---|---|---|
-| `<arm>/joint_state_publisher_gui` (×2, package `joint_state_publisher_gui`) | reads `/<arm>/robot_description` once to learn joint names and slider ranges | publishes `/<arm>/joint_states` every time you drag a slider — this is **live user input**, not planner output |
-| `teach` | parameters `config` (arms.yaml override), `output` (waypoint CSV path), `meshcat`/`meshcat_host`/`meshcat_port`; subscribes `/<arm>/joint_states` ×2; looks up `world → <arm>/<ee_frame>` on the TF tree for the pose readout | publishes `/scene` once (latched) and `/collision_spheres` every GUI tick (~20 Hz, needs `mr_planner_core`'s `robot_spheres` — see below); opens the Tkinter toolbar; writes the waypoint CSV when you click **Save CSV**; if `meshcat:=true`, also streams raw JSON over a plain TCP socket to a separately-run `meshcat_bridge.py` (not a ROS topic) |
-
-`teach` is one process doing two jobs at once: an `rclpy.Node` spun on a
-background thread, and a Tkinter `Toolbar` window run on the main thread's
-`mainloop()` (`teach.py: main()`) — the 50 ms `Toolbar.tick()` is what drives
-every one of `teach`'s outputs above, not a ROS timer or callback.
-
-**`plan.launch.py` also starts** (`vamp_mr_arms/vamp_mr_arms/plan.py`):
-
-| Node | Input | Output |
-|---|---|---|
-| `plan` | parameters `config`, `waypoints` (empty = plan `arms.yaml`'s `routine`; a path = read that CSV's `<arm>_<joint>_rad` columns instead, `read_waypoints()`) | publishes `/scene` once (latched); plans with `world.plan_legs()`, then publishes `/<arm>/trajectory` once (latched, the full path) via `publish_trajectories()`; then a `Replay` object (a ROS timer at `planning.dt / replay.rate` seconds) streams that same path onto `/<arm>/joint_states`, looping if `replay.loop`; logs waypoint list, per-leg planning stats, and the final `trajectory_in_collision` check to stdout |
-
-**The one thing to hold onto:** `/<arm>/joint_states` is published by a
-*different* node depending on which launch file is running, and the data flows
-in opposite directions — `teach.launch.py`'s `joint_state_publisher_gui` turns
-your slider drags *into* that topic (you are the source); `plan.launch.py`'s
-`plan` node turns a *planned* trajectory *into* that same topic on a timer (the
-planner is the source). Either way, `robot_state_publisher` just consumes
-whatever shows up there and turns it into TF for RViz to draw — it has no idea
+`teach.launch.py` adds a `joint_state_publisher_gui` per arm and the `teach` node; the
+sliders are live user input. `plan.launch.py` adds the `plan` node, whose `Replay` timer
+drives the same `/<arm>/joint_states` topic from a planned trajectory. Same topic, opposite
+direction depending on which launch file is running — `robot_state_publisher` cannot tell
 whether the joints came from a human or a plan.
-
-## Teaching your own waypoints
-
-```bash
-ros2 launch vamp_mr_arms teach.launch.py output:=routine.csv
-```
-
-Both arms appear in the cell with a slider window each. The toolbar shows every joint, the
-live end-effector pose, and — the part that matters — whether the current pose is
-**plannable**. `Record` refuses a pose the planner cannot use and says why (`ur7e folds into
-itself`, `the arms hit each other`, `ur5 hits the cell`), so a saved CSV is plannable by
-construction. `Save CSV` writes it out.
-
-The reason names the exact colliding pair, e.g. `ur5 hits the cell (forearm_link hits
-work_table_top)`. Gripper links (`fts_robotside`, `robotiq_85_*`) never appear here against
-scene objects — VAMP's compiled UR5 model permanently includes that gripper, but
-`world.build()` allow-lists it against every scene object (see "What the planner actually
-sees" above), since neither arm on screen wears one. A rejection can still look surprising
-from a 2D screenshot even so: a link can be sitting right above an obstacle, invisibly close
-in Z, while camera perspective makes it look nowhere near. Read the `tool0` pose numbers in
-the toolbar, not just the picture, if a rejection looks wrong — VAMP's own forward kinematics
-decided it, not what the camera angle makes it look like.
-
-### Seeing what the planner actually checks (Meshcat)
-
-`teach.launch.py` can stream VAMP's real collision geometry — every sphere it approximates
-each arm with, gripper included, plus the scene boxes — to a browser, live, as you jog the
-sliders. Meshcat draws VAMP's raw spheres unfiltered, so the gripper spheres will still show
-overlapping scene objects there even though `world.build()`'s allow-list means that overlap
-is no longer reported as a collision — Meshcat shows geometry, not the collision verdict. It
-needs the `meshcat` bridge running first:
-
-```bash
-# terminal 1 — start once, leave running
-python3 /home/tcs-research/Documents/multi_arm_path_planning/mr_planner_core/scripts/visualization/meshcat_bridge.py --port 7600
-```
-
-It prints two lines: `[bridge] Meshcat server started at http://127.0.0.1:<some-port>/static/`
-and `[bridge] Listening on ('127.0.0.1', 7600)`. The first is the browser URL — open it (its
-port is picked independently by the `meshcat` package, not `--port`, so read it from the
-output rather than assuming a number). The second confirms it's listening on `--port`, which
-is the one `teach.launch.py`'s `meshcat_port` must match. Then in a second terminal:
-
-```bash
-# terminal 2
-ros2 launch vamp_mr_arms teach.launch.py meshcat:=true meshcat_port:=7600
-```
-
-The `teach` node logs `meshcat enabled, streaming to ...` once connected. If the bridge isn't
-up yet, `push_meshcat` retries the connection on every GUI tick (20 Hz), so it self-heals once
-you start the bridge — but expect a `[meshcat] connection failed: connection refused` warning
-on every tick until then, which is harmless but noisy; start the bridge first to avoid it.
-`meshcat_port` defaults to `7600` and only needs setting if you changed `--port` above.
-
-### Seeing it without leaving RViz (`/collision_spheres`)
-
-`teach` also publishes a `MarkerArray` on `/collision_spheres` every tick — one translucent
-sphere per collision sphere of each arm, in `arms.rviz` already (enabled by default) — no
-bridge, no browser. It needs `mr_planner_core` rebuilt and reinstalled for
-`environment.robot_spheres()` to exist (`cmake --build build -j && sudo cmake --install
-build` in `mr_planner_core`); until then `teach` logs one warning and skips the topic rather
-than failing. Gripper spheres are drawn too, in yellow (arm spheres are orange-red) — they're
-allow-listed against scene objects (§4 above) but still checked for self-collision and
-arm-vs-arm, so they stay visible rather than looking removed when they aren't fully gone.
-
-One row per waypoint: `name`, then each arm's six joints (rad, already wrapped into ±π)
-followed by its end-effector pose (m and rad). Only the joint columns are planned with; the
-pose columns are there for you to read. Each pose is looked up at its own joint state's
-timestamp, so the pose in a row always belongs to the joints beside it.
-
-`plan.launch.py waypoints:=routine.csv` reads those joint columns **by header name**, wraps
-them, checks every waypoint, and refuses the whole run with one line if any waypoint is
-unusable — it never plans a different motion than the one you recorded.
-
-## Parameters
-
-Everything lives in `src/vamp_mr_arms/config/arms.yaml`.
-
-| Key | Unit | Effect |
-|---|---|---|
-| `env_json` | — | environment file under `vamp_env/`, names the plugin and the robot groups |
-| `arms[].name` | — | ROS namespace, TF prefix and CSV column prefix |
-| `arms[].ur_type` | — | which `ur_description` model is displayed (`ur5`, `ur7e`, …) |
-| `arms[].base.xyz` | m | foot of the VAMP pedestal; `base_link` lands 0.9144 m higher |
-| `arms[].base.rpy` | rad | base orientation; the display adds 1.57 rad of yaw |
-| `arms[].ee_frame` | — | frame the teach toolbar reads the pose of |
-| `arms[].joints` | — | joint names, in planner order |
-| `scene[]` | m | collision boxes: `size` is full extent, `xyz` is the centre |
-| `scene[].role` | — | marker colour: `table`, `conveyor`, `source`, `target` |
-| `display_only[]` | m | drawn in RViz, never given to the planner |
-| `routine[]` | m | one end-effector position per arm per waypoint, world frame |
-| `ik.reference` | rad | first IK seed, and the source of the tool-down orientation |
-| `ik.max_restarts` | — | IK restarts before a waypoint is declared unreachable |
-| `ik.tol_pos` / `ik.tol_ang` | m / rad | IK convergence tolerances |
-| `planning.planner` | — | `composite_rrt`, `cbs_prm` or `priority_sipp_rrt` |
-| `planning.planning_time` | s | per-leg planning budget |
-| `planning.shortcut_time` | s | per-leg shortcutting budget; dominates the ~110 ms per leg |
-| `planning.vmax` | rad/s | joint speed the trajectory is timed for |
-| `planning.dt` | s | spacing of trajectory samples, and the replay tick |
-| `planning.seed` | — | fixes the sampler and the roadmap; the same run twice is identical |
-| `planning.roadmap_samples` / `roadmap_max_dist` | — / rad | `cbs_prm` roadmap only |
-| `replay.rate` | x | replay speed; the timer runs at `dt / rate` |
-| `replay.loop` | bool | loop the motion, or hold the final pose |
-
-Measured effect of the two you are most likely to touch: `vmax: 2.5` → 4.92 s of motion,
-`vmax: 0.5` → 22.50 s. All three planners solve this cell (`composite_rrt` 4.92 s,
-`cbs_prm` 4.60 s, `priority_sipp_rrt` 4.78 s).
-
-## Topics
-
-| Topic | Type | Publisher | Subscriber(s) | Notes |
-|---|---|---|---|---|
-| `/scene` | `MarkerArray` | `teach` or `plan` (`arms.py: publish_scene`) | `rviz2` | latched, one cube per `scene` + `display_only` entry, published once at startup |
-| `/collision_spheres` | `MarkerArray` | `teach` only | `rviz2` | not latched, republished every GUI tick (~20 Hz); one sphere per collision sphere per arm (gripper spheres in yellow); needs `mr_planner_core`'s `robot_spheres` installed, else skipped with one logged warning |
-| `/<arm>/joint_states` | `JointState` | **teach mode:** `<arm>/joint_state_publisher_gui`, on every slider move. **plan mode:** `plan`'s `Replay`, on a timer at `planning.dt / replay.rate` (10 Hz by default), looping if `replay.loop` | `<arm>/robot_state_publisher` (always); `teach` itself, teach mode only | same topic, opposite direction depending on which launch file is running — see "Nodes" above |
-| `/<arm>/trajectory` | `JointTrajectory` | `plan` only (`publish_trajectories`) | none in this workspace (informational, for external consumers) | latched, published once after planning, `time_from_start` straight from the planner |
-| `/<arm>/robot_description` | `String` | `<arm>/robot_state_publisher` | `rviz2`; `<arm>/joint_state_publisher_gui` (teach mode only, to learn joint names/limits) | latched; built from the unmodified `ur_description` `ur.urdf.xacro`, not from any file this repo edits |
-| `/tf` | `tf2_msgs/TFMessage` | `<arm>/robot_state_publisher` ×2 | `rviz2`; `teach`'s TF listener (for the `tool0` pose readout) | standard dynamic transforms, one per non-fixed joint |
-| `/tf_static` | `tf2_msgs/TFMessage` | `<arm>_base` static_transform_publisher ×2 | `rviz2`; `teach`'s TF listener | the fixed `world` → `<arm>/world` mount transform each arm's TF tree hangs off of |
 
 ## Changing things
 
-* **Move an arm** — edit `arms[].base` and relaunch. `world.build` re-applies the base
-  transforms at runtime, so you do *not* need to re-run `tools/make_env.sh`; the YAML is the
-  only place the layout is written down.
-* **Change the cell** — add or edit `scene` entries. Remember the 0.834 m ceiling under the
-  arms (§3 above); the gripper no longer reserves clearance above reachable surfaces since
-  it's excluded from scene-object collision checks (§4 above).
-* **Change the motion** — edit `routine`. A target the arm cannot reach, or a pair that
-  collides, is reported by name before anything is planned.
-* **Change the robots** — `arms[].ur_type` picks any model in `ur_description`. The planner
-  still checks a UR5.
-* **Re-run `tools/make_env.sh`** only when you change the number of arms or the plugin: it
-  compiles the two-UR5 plugin with the repo's own `generate_vamp_robot_plugin.py`, then
-  writes `two_arms.json` from `arms.yaml`.
+* **Move an arm, or change the cell** — edit `models/bimanual_scene.xml` and re-run
+  `tools/make_env.sh`. The plugin is only rebuilt if the *robot* changed; the cell is
+  re-applied at runtime from `cell.yaml`.
+* **Change the robot** — edit `models/ur5e.xml` and re-run `tools/make_env.sh`. This does
+  regenerate the collision kernel, so it needs cricket.
+* **Change the motion** — edit `routine` in `config/arms.yaml`, or record one with
+  `teach.launch.py`. Targets position the `tcp` frame, which is the gripper's pinch point:
+  a waypoint is where the grasp happens, not where the mounting flange goes.
 
 Python nodes are **copied**, not symlinked, by `colcon build --symlink-install`, so re-run
 `colcon build` after editing a node.
@@ -317,10 +228,11 @@ Python nodes are **copied**, not symlinked, by `colcon build --symlink-install`,
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `waypoint 3 (pick): ur7e folds into itself` | that recorded pose is in self-collision | re-teach it; the toolbar now says `plannable` before you record. If the named links are `robotiq_85_*`/`fts_robotside`, that's the gripper self-colliding with the arm — not filterable without patching VAMP's own installed header, see "What the planner actually sees" |
-| `... hits the cell (link hits ...)` with nothing visibly touching in RViz | a link (gripper excluded) can be much closer in Z to an obstacle than 2D perspective suggests | read the `tool0` numbers, or launch with `meshcat:=true` / check `/collision_spheres` to see it |
-| `waypoint over_bins: ur5 cannot reach [...]` | routine target outside the arm's reach | raise the target or move it closer to the base |
-| `leg home -> over_bins: Planning failed` | no collision-free path within `planning_time` | raise `planning_time`, or move the waypoints apart from the obstacles |
-| arms float above the table in RViz | `display_only` risers removed, or `PEDESTAL_Z` changed | leave the risers in; they are the 84 mm the base sphere occupies |
-| everything collides at every pose | table top raised above 0.834 m | lower `work_table_top` |
-| walls of roadmap histograms in the log | `mr_planner_core` prints its roadmap statistics on stdout with `cbs_prm` | harmless; use `composite_rrt` for a quiet log |
+| `the VAMP plugin ... is missing` | `make_env.sh` has not run, or stopped at cricket | build cricket, then re-run `tools/make_env.sh` |
+| `models/ur5e.urdf: missing` | same | as above |
+| `cell.yaml: missing` | same | as above |
+| `waypoint 3 (pick): left folds into itself` | that pose is in self-collision | re-teach it; the toolbar says `plannable` before you record |
+| `waypoint over_bins: left cannot reach [...]` | routine target outside the arm's reach | move it closer to the base, or lower |
+| `leg home -> over_bins: Planning failed` | no collision-free path within `planning_time` | raise `planning_time`, or move waypoints away from obstacles |
+| arms float above the workbench in RViz | `cell.yaml` edited by hand and now disagrees with the MuJoCo scene | re-run `tools/make_env.sh` |
+| walls of roadmap histograms in the log | `mr_planner_core` prints roadmap statistics with `cbs_prm` | harmless; `composite_rrt` is quiet |
